@@ -1,0 +1,735 @@
+@page "/dashboard/reservations"
+@using RoomReservation_Dumadapat_IT13.Models
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+<div class="dashboard-container">
+    <aside class="dashboard-sidebar">
+        <div class="sidebar-header">
+            <img src="/images/logo.png" alt="Logo" class="sidebar-logo" />
+            <h2 class="sidebar-title">Admin Panel</h2>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="/dashboard" class="nav-item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="7"/>
+                    <rect x="14" y="3" width="7" height="7"/>
+                    <rect x="14" y="14" width="7" height="7"/>
+                    <rect x="3" y="14" width="7" height="7"/>
+                </svg>
+                <span>Dashboard</span>
+            </a>
+            <a href="/dashboard/reservations" class="nav-item active">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                <span>Reservation Management</span>
+            </a>
+            <a href="/dashboard/removed" class="nav-item">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 6h18"/>
+                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                </svg>
+                <span>Cancelled Reservations</span>
+            </a>
+            <a href="/login" class="nav-item logout-item" @onclick="ShowLogoutConfirmation" @onclick:preventDefault>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+                <span>Logout</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="dashboard-main">
+        <div class="dashboard-header">
+            <h1 class="dashboard-title">Reservation Management</h1>
+        </div>
+
+        <div class="dashboard-content">
+            <div class="reservation-form-section">
+                <h2 class="section-title">Reservation Information</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Reservation ID</label>
+                        <input type="number" @bind="currentReservation.ReservationID" class="form-input" readonly />
+                    </div>
+                    <div class="form-group">
+                        <label>First Name *</label>
+                        <input type="text" @bind="currentReservation.CustomerFname" class="form-input" placeholder="Enter first name" />
+                    </div>
+                    <div class="form-group">
+                        <label>Last Name *</label>
+                        <input type="text" @bind="currentReservation.CustomerLname" class="form-input" placeholder="Enter last name" />
+                    </div>
+                    <div class="form-group">
+                        <label>Contact Number *</label>
+                        <input type="text" @bind="currentReservation.ContactNum" class="form-input" placeholder="Enter contact number" />
+                    </div>
+                    <div class="form-group">
+                        <label>Email *</label>
+                        <input type="email" @bind="currentReservation.Email" class="form-input" placeholder="Enter email address" />
+                    </div>
+                    <div class="form-group">
+                        <label>Room Type *</label>
+                        <select @bind="currentReservation.RoomType" class="form-input">
+                            <option value="">Select room type</option>
+                            <option value="Standard Room">Standard Room</option>
+                            <option value="Superior Room">Superior Room</option>
+                            <option value="Junior Suite">Junior Suite</option>
+                            <option value="Family Room">Family Room</option>
+                            <option value="Two-Bedroom Suite">Two-Bedroom Suite</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Check-In Date *</label>
+                        <input type="date" value="@checkInDateString" @onchange="HandleCheckInDateChange" class="form-input" />
+                    </div>
+                    <div class="form-group">
+                        <label>Check-Out Date *</label>
+                        <input type="date" value="@checkOutDateString" @onchange="HandleCheckOutDateChange" class="form-input" />
+                    </div>
+                    <div class="form-group">
+                        <label>Status *</label>
+                        <select @bind="currentReservation.Status" class="form-input">
+                            <option value="">Select status</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Confirmed">Confirmed</option>
+                            <option value="Checked In">Checked In</option>
+                            <option value="Checked Out">Checked Out</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Room Price *</label>
+                        <input type="number" @bind="currentReservation.RoomPrice" step="0.01" class="form-input" placeholder="0.00" />
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button class="btn btn-add" @onclick="AddReservation">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Add
+                    </button>
+                    <button class="btn btn-update" @onclick="UpdateReservation">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                        Update
+                    </button>
+                    <button class="btn btn-delete" @onclick="ShowCancelModal">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="m15 9-6 6"/>
+                            <path d="m9 9 6 6"/>
+                        </svg>
+                        Cancel Reservation
+                    </button>
+                    <button class="btn btn-clear" @onclick="ClearForm">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 6h18"/>
+                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                        </svg>
+                        Clear
+                    </button>
+                </div>
+            </div>
+
+            <div class="search-section">
+                <div class="search-container">
+                    <input type="text" value="@searchTerm" @oninput="HandleSearchInput" class="search-input" placeholder="Search by name, email, contact, room type, or status..." />
+                    <button class="btn btn-search" @onclick="LoadAllReservationsForSearch">View All</button>
+                </div>
+            </div>
+
+            <div class="table-section">
+                <h2 class="section-title">Reservations List</h2>
+                <div class="table-container">
+                    <table class="reservation-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>First Name</th>
+                                <th>Last Name</th>
+                                <th>Contact</th>
+                                <th>Email</th>
+                                <th>Room Type</th>
+                                <th>Check-In</th>
+                                <th>Check-Out</th>
+                                <th>Status</th>
+                                <th>Price</th>
+                                <th>Date Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (reservations == null || reservations.Count == 0)
+                            {
+                                <tr>
+                                    <td colspan="12" class="no-data">No reservations found</td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var reservation in reservations)
+                                {
+                                    <tr>
+                                        <td>@reservation.ReservationID</td>
+                                        <td>@reservation.CustomerFname</td>
+                                        <td>@reservation.CustomerLname</td>
+                                        <td>@reservation.ContactNum</td>
+                                        <td>@reservation.Email</td>
+                                        <td>@reservation.RoomType</td>
+                                        <td>@(reservation.CheckInDate?.ToString("MM/dd/yyyy") ?? "-")</td>
+                                        <td>@(reservation.CheckOutDate?.ToString("MM/dd/yyyy") ?? "-")</td>
+                                        <td><span class="status-badge status-@(reservation.Status?.ToLower().Replace(" ", "-") ?? "")">@reservation.Status</span></td>
+                                        <td>$@reservation.RoomPrice.ToString("F2")</td>
+                                        <td>@(reservation.DateCreated?.ToString("MM/dd/yyyy") ?? "-")</td>
+                                        <td>
+                                            <div class="action-buttons">
+                                                <button class="btn-action btn-edit" @onclick="@(() => EditReservation(reservation))" title="Edit Reservation">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                                    </svg>
+                                                    Edit
+                                                </button>
+                                                <button class="btn-action btn-cancel-row" @onclick="@(() => ShowCancelModalForReservation(reservation))" title="Cancel Reservation">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <circle cx="12" cy="12" r="10"/>
+                                                        <path d="m15 9-6 6"/>
+                                                        <path d="m9 9 6 6"/>
+                                                    </svg>
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+@if (showLogoutModal)
+{
+    <div class="modal-overlay" @onclick="CloseLogoutModal">
+        <div class="modal-content logout-modal" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h2>Confirm Logout</h2>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to logout?</p>
+                <div class="modal-actions">
+                    <button class="btn-cancel" @onclick="CloseLogoutModal">Cancel</button>
+                    <button class="btn-confirm" @onclick="HandleLogout">Logout</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showCancelModal)
+{
+    <div class="modal-overlay" @onclick="CloseCancelModal">
+        <div class="modal-content cancel-modal" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h2>Cancel Reservation</h2>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to cancel this reservation?</p>
+                @if (currentReservation.ReservationID > 0)
+                {
+                    <div class="reservation-details-preview">
+                        <p><strong>Reservation ID:</strong> @currentReservation.ReservationID</p>
+                        <p><strong>Customer:</strong> @currentReservation.CustomerFname @currentReservation.CustomerLname</p>
+                        <p><strong>Room Type:</strong> @currentReservation.RoomType</p>
+                        <p><strong>Check-In:</strong> @(currentReservation.CheckInDate?.ToString("MM/dd/yyyy") ?? "-")</p>
+                        <p><strong>Check-Out:</strong> @(currentReservation.CheckOutDate?.ToString("MM/dd/yyyy") ?? "-")</p>
+                    </div>
+                }
+                <div class="form-group">
+                    <label>Reason for Cancellation *</label>
+                    <textarea @bind="cancelReason" class="form-textarea" placeholder="Enter reason for cancellation..." rows="4"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-cancel" @onclick="CloseCancelModal">Cancel</button>
+                    <button class="btn-confirm" @onclick="ConfirmCancelReservation">Confirm Cancellation</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showNotificationModal)
+{
+    <div class="modal-overlay" @onclick="CloseNotificationModal">
+        <div class="modal-content notification-modal" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h2>@(notificationType == "error" ? "Error" : "Notification")</h2>
+            </div>
+            <div class="modal-body">
+                <p>@notificationMessage</p>
+                <div class="modal-actions">
+                    <button class="btn-confirm" @onclick="CloseNotificationModal">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<RoomReservation_Dumadapat_IT13.Models.Reservation> reservations = new List<RoomReservation_Dumadapat_IT13.Models.Reservation>();
+    private List<RoomReservation_Dumadapat_IT13.Models.Reservation> allReservationsList = new List<RoomReservation_Dumadapat_IT13.Models.Reservation>();
+    private List<RoomReservation_Dumadapat_IT13.Models.RemovedReservation> cancelledReservations = new List<RoomReservation_Dumadapat_IT13.Models.RemovedReservation>();
+    private RoomReservation_Dumadapat_IT13.Models.Reservation currentReservation = new RoomReservation_Dumadapat_IT13.Models.Reservation();
+    private string searchTerm = "";
+    private bool showLogoutModal = false;
+    private bool showCancelModal = false;
+    private bool showNotificationModal = false;
+    private string cancelReason = "";
+    private string notificationMessage = "";
+    private string notificationType = "success";
+    private string? currentUserEmail = "";
+    private int nextReservationId = 1;
+    private int nextRemovedId = 1;
+
+    private string checkInDateString
+    {
+        get => currentReservation.CheckInDate?.ToString("yyyy-MM-dd") ?? "";
+    }
+
+    private string checkOutDateString
+    {
+        get => currentReservation.CheckOutDate?.ToString("yyyy-MM-dd") ?? "";
+    }
+
+    private void HandleCheckInDateChange(ChangeEventArgs e)
+    {
+        string value = e.Value?.ToString() ?? "";
+        if (DateTime.TryParse(value, out DateTime date))
+        {
+            currentReservation.CheckInDate = date;
+        }
+        else
+        {
+            currentReservation.CheckInDate = null;
+        }
+    }
+
+    private void HandleCheckOutDateChange(ChangeEventArgs e)
+    {
+        string value = e.Value?.ToString() ?? "";
+        if (DateTime.TryParse(value, out DateTime date))
+        {
+            currentReservation.CheckOutDate = date;
+        }
+        else
+        {
+            currentReservation.CheckOutDate = null;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckAuthentication();
+        LoadAllReservations();
+        currentUserEmail = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "userEmail");
+        
+        // Initialize with sample data
+        if (reservations.Count == 0)
+        {
+            InitializeSampleData();
+        }
+    }
+
+    private void InitializeSampleData()
+    {
+        // Only initialize if empty to avoid resetting data
+        if (reservations.Count > 0 && allReservationsList.Count > 0) return;
+        
+        var sampleReservations = new List<RoomReservation_Dumadapat_IT13.Models.Reservation>
+        {
+            new RoomReservation_Dumadapat_IT13.Models.Reservation
+            {
+                ReservationID = nextReservationId++,
+                CustomerFname = "John",
+                CustomerLname = "Doe",
+                ContactNum = "1234567890",
+                Email = "john.doe@email.com",
+                RoomType = "Standard Room",
+                CheckInDate = DateTime.Now.AddDays(5),
+                CheckOutDate = DateTime.Now.AddDays(8),
+                Status = "Pending",
+                DateCreated = DateTime.Now.AddDays(-2),
+                RoomPrice = 150.00m
+            },
+            new RoomReservation_Dumadapat_IT13.Models.Reservation
+            {
+                ReservationID = nextReservationId++,
+                CustomerFname = "Jane",
+                CustomerLname = "Smith",
+                ContactNum = "0987654321",
+                Email = "jane.smith@email.com",
+                RoomType = "Superior Room",
+                CheckInDate = DateTime.Now.AddDays(10),
+                CheckOutDate = DateTime.Now.AddDays(13),
+                Status = "Confirmed",
+                DateCreated = DateTime.Now.AddDays(-1),
+                RoomPrice = 200.00m
+            },
+            new RoomReservation_Dumadapat_IT13.Models.Reservation
+            {
+                ReservationID = nextReservationId++,
+                CustomerFname = "Bob",
+                CustomerLname = "Johnson",
+                ContactNum = "5555555555",
+                Email = "bob.johnson@email.com",
+                RoomType = "Junior Suite",
+                CheckInDate = DateTime.Now.AddDays(15),
+                CheckOutDate = DateTime.Now.AddDays(19),
+                Status = "Checked In",
+                DateCreated = DateTime.Now.AddDays(-5),
+                RoomPrice = 300.00m
+            }
+        };
+        
+        if (reservations.Count == 0)
+        {
+            reservations.AddRange(sampleReservations);
+        }
+        allReservationsList = new List<RoomReservation_Dumadapat_IT13.Models.Reservation>(reservations);
+        StateHasChanged();
+    }
+
+    private async Task CheckAuthentication()
+    {
+        var isAuthenticated = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "isAuthenticated");
+        if (isAuthenticated != "true")
+        {
+            Navigation.NavigateTo("/login");
+        }
+    }
+
+    private void LoadAllReservations()
+    {
+        // Reservations are stored in memory
+        StateHasChanged();
+    }
+
+    private void AddReservation()
+    {
+        if (string.IsNullOrWhiteSpace(currentReservation.CustomerFname) ||
+            string.IsNullOrWhiteSpace(currentReservation.CustomerLname) ||
+            string.IsNullOrWhiteSpace(currentReservation.ContactNum) ||
+            string.IsNullOrWhiteSpace(currentReservation.Email) ||
+            string.IsNullOrWhiteSpace(currentReservation.RoomType) ||
+            currentReservation.CheckInDate == null ||
+            currentReservation.CheckOutDate == null ||
+            string.IsNullOrWhiteSpace(currentReservation.Status) ||
+            currentReservation.RoomPrice <= 0)
+        {
+            ShowNotification("Please fill in all required fields.", "error");
+            return;
+        }
+
+        currentReservation.ReservationID = nextReservationId++;
+        currentReservation.DateCreated = DateTime.Now;
+        
+        var newReservation = new RoomReservation_Dumadapat_IT13.Models.Reservation
+        {
+            ReservationID = currentReservation.ReservationID,
+            CustomerFname = currentReservation.CustomerFname,
+            CustomerLname = currentReservation.CustomerLname,
+            ContactNum = currentReservation.ContactNum,
+            Email = currentReservation.Email,
+            RoomType = currentReservation.RoomType,
+            CheckInDate = currentReservation.CheckInDate,
+            CheckOutDate = currentReservation.CheckOutDate,
+            Status = currentReservation.Status,
+            DateCreated = currentReservation.DateCreated,
+            RoomPrice = currentReservation.RoomPrice
+        };
+        
+        reservations.Add(newReservation);
+        allReservationsList.Add(newReservation);
+        
+        ShowNotification("Reservation added successfully!", "success");
+        ClearForm();
+        LoadAllReservations();
+    }
+
+    private void UpdateReservation()
+    {
+        if (currentReservation.ReservationID == 0)
+        {
+            ShowNotification("Please select a reservation to update.", "error");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(currentReservation.CustomerFname) ||
+            string.IsNullOrWhiteSpace(currentReservation.CustomerLname) ||
+            string.IsNullOrWhiteSpace(currentReservation.ContactNum) ||
+            string.IsNullOrWhiteSpace(currentReservation.Email) ||
+            string.IsNullOrWhiteSpace(currentReservation.RoomType) ||
+            currentReservation.CheckInDate == null ||
+            currentReservation.CheckOutDate == null ||
+            string.IsNullOrWhiteSpace(currentReservation.Status) ||
+            currentReservation.RoomPrice <= 0)
+        {
+            ShowNotification("Please fill in all required fields.", "error");
+            return;
+        }
+
+        var existingReservation = reservations.FirstOrDefault(r => r.ReservationID == currentReservation.ReservationID);
+        var existingInMasterList = allReservationsList.FirstOrDefault(r => r.ReservationID == currentReservation.ReservationID);
+        
+        if (existingReservation != null)
+        {
+            existingReservation.CustomerFname = currentReservation.CustomerFname;
+            existingReservation.CustomerLname = currentReservation.CustomerLname;
+            existingReservation.ContactNum = currentReservation.ContactNum;
+            existingReservation.Email = currentReservation.Email;
+            existingReservation.RoomType = currentReservation.RoomType;
+            existingReservation.CheckInDate = currentReservation.CheckInDate;
+            existingReservation.CheckOutDate = currentReservation.CheckOutDate;
+            existingReservation.Status = currentReservation.Status;
+            existingReservation.RoomPrice = currentReservation.RoomPrice;
+            
+            // Also update in master list
+            if (existingInMasterList != null)
+            {
+                existingInMasterList.CustomerFname = currentReservation.CustomerFname;
+                existingInMasterList.CustomerLname = currentReservation.CustomerLname;
+                existingInMasterList.ContactNum = currentReservation.ContactNum;
+                existingInMasterList.Email = currentReservation.Email;
+                existingInMasterList.RoomType = currentReservation.RoomType;
+                existingInMasterList.CheckInDate = currentReservation.CheckInDate;
+                existingInMasterList.CheckOutDate = currentReservation.CheckOutDate;
+                existingInMasterList.Status = currentReservation.Status;
+                existingInMasterList.RoomPrice = currentReservation.RoomPrice;
+            }
+            
+            ShowNotification("Reservation updated successfully!", "success");
+            ClearForm();
+            LoadAllReservations();
+        }
+        else
+        {
+            ShowNotification("Reservation not found.", "error");
+        }
+    }
+
+    private void EditReservation(RoomReservation_Dumadapat_IT13.Models.Reservation reservation)
+    {
+        currentReservation = new RoomReservation_Dumadapat_IT13.Models.Reservation
+        {
+            ReservationID = reservation.ReservationID,
+            CustomerFname = reservation.CustomerFname,
+            CustomerLname = reservation.CustomerLname,
+            ContactNum = reservation.ContactNum,
+            Email = reservation.Email,
+            RoomType = reservation.RoomType,
+            CheckInDate = reservation.CheckInDate,
+            CheckOutDate = reservation.CheckOutDate,
+            Status = reservation.Status,
+            DateCreated = reservation.DateCreated,
+            RoomPrice = reservation.RoomPrice
+        };
+    }
+
+    private void ShowCancelModal()
+    {
+        if (currentReservation.ReservationID == 0)
+        {
+        ShowNotification("Please select a reservation to cancel.", "error");
+        return;
+        }
+        cancelReason = "";
+        showCancelModal = true;
+    }
+
+    private void ShowCancelModalForReservation(RoomReservation_Dumadapat_IT13.Models.Reservation reservation)
+    {
+        currentReservation = new RoomReservation_Dumadapat_IT13.Models.Reservation
+        {
+            ReservationID = reservation.ReservationID,
+            CustomerFname = reservation.CustomerFname,
+            CustomerLname = reservation.CustomerLname,
+            ContactNum = reservation.ContactNum,
+            Email = reservation.Email,
+            RoomType = reservation.RoomType,
+            CheckInDate = reservation.CheckInDate,
+            CheckOutDate = reservation.CheckOutDate,
+            Status = reservation.Status,
+            DateCreated = reservation.DateCreated,
+            RoomPrice = reservation.RoomPrice
+        };
+        cancelReason = "";
+        showCancelModal = true;
+    }
+
+    private void CloseCancelModal()
+    {
+        showCancelModal = false;
+        cancelReason = "";
+    }
+
+    private void ConfirmCancelReservation()
+    {
+        if (string.IsNullOrWhiteSpace(cancelReason))
+        {
+            ShowNotification("Please enter a reason for cancellation.", "error");
+            return;
+        }
+
+        var reservationToCancel = reservations.FirstOrDefault(r => r.ReservationID == currentReservation.ReservationID);
+        if (reservationToCancel != null)
+        {
+            // Move to cancelled reservations
+            cancelledReservations.Add(new RoomReservation_Dumadapat_IT13.Models.RemovedReservation
+            {
+                RemovedID = nextRemovedId++,
+                ReservationID = reservationToCancel.ReservationID,
+                CustomerFname = reservationToCancel.CustomerFname,
+                CustomerLname = reservationToCancel.CustomerLname,
+                ContactNum = reservationToCancel.ContactNum,
+                Email = reservationToCancel.Email,
+                RoomType = reservationToCancel.RoomType,
+                CheckInDate = reservationToCancel.CheckInDate,
+                CheckOutDate = reservationToCancel.CheckOutDate,
+                Status = reservationToCancel.Status,
+                ReasonNote = cancelReason,
+                AdminID = 1, // Static admin ID
+                RemovedBy = "Admin User", // Static admin name
+                DateRemoved = DateTime.Now,
+                RoomPrice = reservationToCancel.RoomPrice,
+                AdminName = "Admin User"
+            });
+            
+            // Remove from active reservations
+            reservations.Remove(reservationToCancel);
+            allReservationsList.Remove(reservationToCancel);
+            
+            ShowNotification("Reservation cancelled successfully!", "success");
+            CloseCancelModal();
+            ClearForm();
+            LoadAllReservations();
+        }
+        else
+        {
+            ShowNotification("Reservation not found.", "error");
+        }
+    }
+
+    private void ClearForm()
+    {
+        currentReservation = new RoomReservation_Dumadapat_IT13.Models.Reservation();
+        currentReservation.CheckInDate = null;
+        currentReservation.CheckOutDate = null;
+    }
+
+    private void HandleSearchInput(ChangeEventArgs e)
+    {
+        searchTerm = e.Value?.ToString() ?? "";
+        SearchReservations();
+    }
+
+    private void LoadAllReservationsForSearch()
+    {
+        // Restore all reservations (remove search filter)
+        searchTerm = "";
+        if (allReservationsList.Count > 0)
+        {
+            reservations = new List<RoomReservation_Dumadapat_IT13.Models.Reservation>(allReservationsList);
+        }
+        else
+        {
+            InitializeSampleData();
+            allReservationsList = new List<RoomReservation_Dumadapat_IT13.Models.Reservation>(reservations);
+        }
+        StateHasChanged();
+    }
+
+    private void SearchReservations()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            // Restore all reservations
+            if (allReservationsList.Count > 0)
+            {
+                reservations = new List<RoomReservation_Dumadapat_IT13.Models.Reservation>(allReservationsList);
+            }
+            else
+            {
+                InitializeSampleData();
+                allReservationsList = new List<RoomReservation_Dumadapat_IT13.Models.Reservation>(reservations);
+            }
+            StateHasChanged();
+            return;
+        }
+
+        // Ensure we have the full list for searching
+        if (allReservationsList.Count == 0)
+        {
+            InitializeSampleData();
+            allReservationsList = new List<RoomReservation_Dumadapat_IT13.Models.Reservation>(reservations);
+        }
+
+        reservations = allReservationsList.Where(r =>
+            (r.CustomerFname?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (r.CustomerLname?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (r.Email?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (r.ContactNum?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (r.RoomType?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (r.Status?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false)
+        ).ToList();
+        StateHasChanged();
+    }
+
+    private void ShowLogoutConfirmation()
+    {
+        showLogoutModal = true;
+    }
+
+    private void CloseLogoutModal()
+    {
+        showLogoutModal = false;
+    }
+
+    private async Task HandleLogout()
+    {
+        await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "isAuthenticated");
+        await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "userEmail");
+        Navigation.NavigateTo("/login");
+    }
+
+    private void ShowNotification(string message, string type = "success")
+    {
+        notificationMessage = message;
+        notificationType = type;
+        showNotificationModal = true;
+        StateHasChanged();
+    }
+
+    private void CloseNotificationModal()
+    {
+        showNotificationModal = false;
+        notificationMessage = "";
+        notificationType = "success";
+    }
+}

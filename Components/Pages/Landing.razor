@@ -1,0 +1,278 @@
+@page "/"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+
+<div class="landing-container">
+    <nav class="navbar-section">
+        <div class="nav-content">
+            <img src="/images/logo.png" alt="Logo" class="nav-logo" />
+            <div class="nav-links">
+                <a href="/" class="nav-link">Home</a>
+                <a href="#about" class="nav-link">About</a>
+                <a href="#" class="nav-link" @onclick="ShowSourcesModal" @onclick:preventDefault>Sources</a>
+                <a href="/booking" class="btn-book-now">Book Now</a>
+                <a href="/login" class="btn-login">Login</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="hero-section">
+        <div class="hero-carousel">
+            <div class="carousel-container">
+                <button class="carousel-btn carousel-btn-left" @onclick="PreviousImage" aria-label="Previous">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m15 18-6-6 6-6"/>
+                    </svg>
+                </button>
+                <div class="carousel-images">
+                    @foreach (var image in heroImages)
+                    {
+                        <div class="carousel-slide @(image == heroImages[currentImageIndex] ? "active" : "")">
+                            <img src="@image" alt="Hero image" />
+                        </div>
+                    }
+                </div>
+                <div class="hero-overlay"></div>
+                <button class="carousel-btn carousel-btn-right" @onclick="NextImage" aria-label="Next">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m9 18 6-6-6-6"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="hero-content">
+                <h1 class="hero-header">Enjoy your Awaited Vacation</h1>
+                <p class="hero-subheader">Book your stay in Vanderson at reasonable prices.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="filter-section">
+        <div class="filter-content">
+            <div class="filter-row">
+                <div class="filter-item">
+                    <label>Type of Room</label>
+                    <select>
+                        <option value="">Choose a room...</option>
+                        <option value="deluxe">Deluxe Room</option>
+                        <option value="vip">VIP Room</option>
+                        <option value="patio">Patio Bedroom</option>
+                        <option value="standard">Standard Room</option>
+                        <option value="suite">Suite</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label>Check-in</label>
+                    <input type="date" />
+                </div>
+                <div class="filter-item">
+                    <label>Check-out</label>
+                    <input type="date" />
+                </div>
+                <div class="filter-item">
+                    <label>Guests</label>
+                    <input type="number" placeholder="Number of guests" min="1" />
+                </div>
+                <div class="filter-search">
+                    <button type="button" class="btn-search" @onclick="NavigateToBooking">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="m21 21-4.3-4.3"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="popular-section">
+        <div class="popular-container">
+            <h2 class="popular-title">Popular Spots & Rooms</h2>
+            <div class="popular-grid">
+                <div class="popular-card popular-card-col1">
+                    <img src="/images/facilities/lobby.jpg" alt="Lobby" />
+                    <div class="popular-card-label">Lobby</div>
+                </div>
+                <div class="popular-grid-col2">
+                    <div class="popular-grid-row">
+                        <div class="popular-card popular-card-small">
+                            <img src="/images/facilities/deluxeroom.jpg" alt="Deluxe Room" />
+                            <div class="popular-card-label">Deluxe Room</div>
+                        </div>
+                        <div class="popular-card popular-card-small">
+                            <img src="/images/facilities/poolarea.jpg" alt="Pool Area" />
+                            <div class="popular-card-label">Pool Area</div>
+                        </div>
+                        <div class="popular-card popular-card-small">
+                            <img src="/images/facilities/viproom.jpg" alt="VIP Room" />
+                            <div class="popular-card-label">VIP Room</div>
+                        </div>
+                    </div>
+                    <div class="popular-grid-row">
+                        <div class="popular-card popular-card-small">
+                            <img src="/images/facilities/poprestau.jpg" alt="Restaurant" />
+                            <div class="popular-card-label">Restaurant</div>
+                        </div>
+                        <div class="popular-card popular-card-small">
+                            <img src="/images/facilities/popgym.jpg" alt="Gym" />
+                            <div class="popular-card-label">Gym</div>
+                        </div>
+                        <div class="popular-card popular-card-small">
+                            <img src="/images/facilities/patioBedroom.jpg" alt="Patio Bedroom" />
+                            <div class="popular-card-label">Patio Bedroom</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="about" class="about-section">
+        <div class="about-content">
+            <div class="about-section-title">
+                <h2>About Us</h2>
+            </div>
+
+            <div class="about-main-heading">
+                <h3>Our Resort Is Committed<br />Earning Your Trust By Providing The Expertise</h3>
+            </div>
+
+            <div class="about-blocks">
+                <div class="about-block">
+                    <div class="about-block-image">
+                        <img src="/images/about1.jpg" alt="Luxury Beachfront Resort" />
+                    </div>
+                    <h4>Luxury Beachfront Resort Experience</h4>
+                    <p>
+                        Vanderson Resort is dedicated to providing an unparalleled vacation experience for our guests. 
+                        Nestled along pristine coastlines, we offer world-class amenities including luxurious accommodations, 
+                        fine dining restaurants, state-of-the-art fitness facilities, and breathtaking pool areas. Our commitment 
+                        to excellence ensures every moment of your stay is memorable and extraordinary.
+                    </p>
+                </div>
+
+                <div class="about-block">
+                    <div class="about-block-image">
+                        <img src="/images/about2.jpg" alt="Trusted Hospitality Services" />
+                    </div>
+                    <h4>Trusted Hospitality Services in Premium Destinations</h4>
+                    <p>
+                        With years of experience in the hospitality industry, Vanderson Resort has established itself as a 
+                        trusted name in luxury travel. We pride ourselves on delivering exceptional service, maintaining the highest 
+                        standards of cleanliness and comfort, and creating unforgettable experiences for families, couples, and 
+                        business travelers alike. Your satisfaction and trust are our top priorities.
+                    </p>
+                </div>
+            </div>
+
+            <div class="about-cta">
+                <span class="btn-know-more">Know More About Us</span>
+                <button class="btn-scroll-top" @onclick="ScrollToTop" aria-label="Scroll to top">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m18 15-6-6-6 6"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer-section">
+        <div class="footer-content">
+            <img src="/images/logo.png" alt="Vanderson Logo" class="footer-logo" />
+            <div class="footer-social">
+                <a href="#" class="social-icon" aria-label="Facebook">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    </svg>
+                </a>
+                <a href="#" class="social-icon" aria-label="Instagram">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                    </svg>
+                </a>
+                <a href="mailto:contact@vandersonresort.com" class="social-icon" aria-label="Email">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                    </svg>
+                </a>
+            </div>
+            <div class="footer-contact">
+                <p class="footer-contact-item">Email: contact@vandersonresort.com</p>
+                <p class="footer-contact-item">Phone: +1 (555) 123-4567</p>
+                <p class="footer-contact-item">Address: 123 Resort Boulevard, Coastal City</p>
+            </div>
+            <p class="footer-text">&copy; 2024 Vanderson Resort. All rights reserved.</p>
+        </div>
+    </footer>
+
+    @if (showSourcesModal)
+    {
+        <div class="modal-overlay" @onclick="CloseSourcesModal">
+            <div class="modal-content" @onclick:stopPropagation="true">
+                <div class="modal-header">
+                    <h2>Sources & Credits</h2>
+                    <button class="modal-close" @onclick="CloseSourcesModal" aria-label="Close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="credit-section">
+                        <h3>Resort Information</h3>
+                        <p><strong>Precise Resort El Rompido-The Hotel</strong></p>
+                        <p>Carretera de Cartaya-El Rompido, km 7, 21459 Эль-Ромпидо, Испания</p>
+                        <p>Rating: 8.5/10</p>
+                        <p>
+                            <a href="https://www.booking.com/hotel/es/precise-resort-el-rompido-the-hotel.ru.html" target="_blank" rel="noopener noreferrer">
+                                View on Booking.com
+                            </a>
+                        </p>
+                    </div>
+                    <div class="credit-section">
+                        <h3>Image Credits</h3>
+                        <p>All images used in this website are property of <strong>Precise Resort El Rompido-The Hotel</strong> and are sourced from their official listing on Booking.com.</p>
+                        <p>Images are used for demonstration purposes only.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<string> heroImages = new List<string>
+    {
+        "/images/landing1.jpg",
+        "/images/landing2.jpg",
+        "/images/landing3.jpg"
+    };
+
+    private int currentImageIndex = 0;
+    private bool showSourcesModal = false;
+
+    private void NextImage()
+    {
+        currentImageIndex = (currentImageIndex + 1) % heroImages.Count;
+    }
+
+    private void PreviousImage()
+    {
+        currentImageIndex = (currentImageIndex - 1 + heroImages.Count) % heroImages.Count;
+    }
+
+    private void ShowSourcesModal()
+    {
+        showSourcesModal = true;
+    }
+
+    private void CloseSourcesModal()
+    {
+        showSourcesModal = false;
+    }
+
+    private async Task ScrollToTop()
+    {
+        await JSRuntime.InvokeVoidAsync("window.scrollTo", 0, 0);
+    }
+
+    private void NavigateToBooking()
+    {
+        Navigation.NavigateTo("/booking");
+    }
+}

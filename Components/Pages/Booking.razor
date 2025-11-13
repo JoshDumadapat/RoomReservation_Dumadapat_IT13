@@ -1,0 +1,553 @@
+@page "/booking"
+@inject IJSRuntime JSRuntime
+@using RoomReservation_Dumadapat_IT13.Components.Pages
+
+<div class="booking-container">
+    <nav class="navbar-section">
+        <div class="nav-content">
+            <img src="/images/logo.png" alt="Logo" class="nav-logo" />
+            <div class="nav-links">
+                <a href="/" class="nav-link">Home</a>
+                <a href="/#about" class="nav-link">About</a>
+                <a href="#" class="nav-link" @onclick="ShowSourcesModal" @onclick:preventDefault>Sources</a>
+                <a href="/booking" class="btn-book-now">Book Now</a>
+                <a href="/login" class="btn-login">Login</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="booking-content">
+        <aside class="filter-sidebar">
+            <h3 class="filter-title">Filters</h3>
+
+            <div class="filter-group">
+                <label class="filter-label">Room Type</label>
+                <div class="checkbox-group">
+                    <label class="checkbox-item">
+                        <input type="checkbox" checked="@selectedRoomTypes.Contains("standard")" @onchange="@((e) => ToggleRoomType("standard", e.Value))" />
+                        <span>Standard Room</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" checked="@selectedRoomTypes.Contains("superior")" @onchange="@((e) => ToggleRoomType("superior", e.Value))" />
+                        <span>Superior Room</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" checked="@selectedRoomTypes.Contains("juniorsuite")" @onchange="@((e) => ToggleRoomType("juniorsuite", e.Value))" />
+                        <span>Junior Suite</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" checked="@selectedRoomTypes.Contains("familyroom")" @onchange="@((e) => ToggleRoomType("familyroom", e.Value))" />
+                        <span>Family Room</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" checked="@selectedRoomTypes.Contains("tbedroomsuite")" @onchange="@((e) => ToggleRoomType("tbedroomsuite", e.Value))" />
+                        <span>Two-Bedroom Suite</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Accommodates</label>
+                <div class="checkbox-group">
+                    <label class="checkbox-item">
+                        <input type="checkbox" checked="@selectedGuests.Contains("2")" @onchange="@((e) => ToggleGuests("2", e.Value))" />
+                        <span>2 Guests</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" checked="@selectedGuests.Contains("3")" @onchange="@((e) => ToggleGuests("3", e.Value))" />
+                        <span>3 Guests</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" checked="@selectedGuests.Contains("4")" @onchange="@((e) => ToggleGuests("4", e.Value))" />
+                        <span>4 Guests</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" checked="@selectedGuests.Contains("5")" @onchange="@((e) => ToggleGuests("5", e.Value))" />
+                        <span>5 Guests</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" checked="@selectedGuests.Contains("6")" @onchange="@((e) => ToggleGuests("6", e.Value))" />
+                        <span>6+ Guests</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Price Range</label>
+                <div class="price-range">
+                    <input type="number" @bind="minPrice" placeholder="Min" class="price-input" />
+                    <span>-</span>
+                    <input type="number" @bind="maxPrice" placeholder="Max" class="price-input" />
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Price</label>
+                <div class="radio-group">
+                    <label class="radio-item">
+                        <input type="radio" name="priceFilter" checked="@(priceFilter == "expensive")" @onchange="@((e) => priceFilter = "expensive")" />
+                        <span>Expensive</span>
+                    </label>
+                    <label class="radio-item">
+                        <input type="radio" name="priceFilter" checked="@(priceFilter == "affordable")" @onchange="@((e) => priceFilter = "affordable")" />
+                        <span>Affordable</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Popular Filters</label>
+                <div class="checkbox-group">
+                    <label class="checkbox-item">
+                        <input type="checkbox" checked="@popularFilters.Contains("breakfast")" @onchange="@((e) => TogglePopularFilter("breakfast", e.Value))" />
+                        <span>Free Breakfast</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" checked="@popularFilters.Contains("wifi")" @onchange="@((e) => TogglePopularFilter("wifi", e.Value))" />
+                        <span>Free WiFi</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" checked="@popularFilters.Contains("parking")" @onchange="@((e) => TogglePopularFilter("parking", e.Value))" />
+                        <span>Free Parking</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" checked="@popularFilters.Contains("pool")" @onchange="@((e) => TogglePopularFilter("pool", e.Value))" />
+                        <span>Pool Access</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" checked="@popularFilters.Contains("gym")" @onchange="@((e) => TogglePopularFilter("gym", e.Value))" />
+                        <span>Fitness Center</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" checked="@popularFilters.Contains("spa")" @onchange="@((e) => TogglePopularFilter("spa", e.Value))" />
+                        <span>Spa Services</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" checked="@popularFilters.Contains("beach")" @onchange="@((e) => TogglePopularFilter("beach", e.Value))" />
+                        <span>Beach Access</span>
+                    </label>
+                    <label class="checkbox-item">
+                        <input type="checkbox" checked="@popularFilters.Contains("golf")" @onchange="@((e) => TogglePopularFilter("golf", e.Value))" />
+                        <span>Golf Course</span>
+                    </label>
+                </div>
+            </div>
+        </aside>
+
+        <main class="booking-main">
+            <div class="results-header">
+                <div class="results-info">
+                    <h2>Available Rooms</h2>
+                    <p class="results-count">@filteredRooms.Count filtered results</p>
+                </div>
+                <div class="sort-container">
+                    <label>Sort by:</label>
+                    <select class="sort-select" @bind="sortBy">
+                        <option value="price-low">Price: Low to High</option>
+                        <option value="price-high">Price: High to Low</option>
+                        <option value="rating">Rating</option>
+                        <option value="popular">Most Popular</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="rooms-list">
+                @foreach (var room in filteredRooms)
+                {
+                    <div class="room-card">
+                        <div class="room-image-col">
+                            <img src="@room.ImageUrl" alt="@room.Name" />
+                        </div>
+                        <div class="room-content-col">
+                            <div class="room-main-content">
+                                <div class="room-row-1">
+                                    <h3 class="room-name">@room.Name</h3>
+                                </div>
+                                <div class="room-row-2">
+                                    @if (room.FreeCancellation)
+                                    {
+                                        <span class="feature-badge">Free Cancellation</span>
+                                    }
+                                    @if (room.BreakfastIncluded)
+                                    {
+                                        <span class="feature-badge">Free Breakfast</span>
+                                    }
+                                    @if (room.Price >= 300)
+                                    {
+                                        <span class="feature-badge">Free Dinner</span>
+                                    }
+                                </div>
+                                <div class="room-row-3">
+                                    <div class="room-features-label">Room feature:</div>
+                                    <div class="room-features-grid">
+                                        <div class="feature-item">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                                <path d="M9 9h6v6H9z"/>
+                                            </svg>
+                                            <span>@room.BathroomInfo</span>
+                                        </div>
+                                        <div class="feature-item">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/>
+                                                <path d="M3 6h18"/>
+                                                <path d="M16 10a4 4 0 0 1-8 0"/>
+                                            </svg>
+                                            <span>@room.BedInfo</span>
+                                        </div>
+                                        <div class="feature-item">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                                                <circle cx="9" cy="7" r="4"/>
+                                                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                                            </svg>
+                                            <span>@room.Accommodates persons</span>
+                                        </div>
+                                        <div class="feature-item">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                                            </svg>
+                                            <span>Free WiFi</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                @if (room.Tags != null && room.Tags.Count > 0)
+                                {
+                                    <div class="room-row-4">
+                                        @foreach (var tag in room.Tags)
+                                        {
+                                            <span class="room-tag">@tag</span>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                            <div class="room-rating-price-section">
+                                <div class="room-rating-badge">
+                                    <span class="rating-score @room.RatingClass">@room.Rating</span>
+                                    <span class="rating-reviews">@room.ReviewCount reviews</span>
+                                </div>
+                                <div class="room-price-wrapper">
+                                    <div class="room-price">
+                                        <span class="price-amount">$@room.Price</span>
+                                    </div>
+                                    <span class="room-availability">
+                                        <span class="availability-label">Available</span>
+                                        <span class="availability-separator">|</span>
+                                        <span class="availability-count">@room.Availability</span>
+                                    </span>
+                                </div>
+                                <button class="btn-see-options" @onclick="@(() => OpenReservationModal(room))">See booking options</button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </main>
+    </div>
+    
+    <Reservation ShowModal="@showReservationModal" SelectedRoom="@selectedRoom" OnClose="CloseReservationModal" />
+</div>
+
+@code {
+    private bool showReservationModal = false;
+    private Room? selectedRoom = null;
+
+    private List<string> selectedRoomTypes = new();
+    private List<string> selectedGuests = new();
+    private decimal? minPrice;
+    private decimal? maxPrice;
+    private string priceFilter = "";
+    private List<string> popularFilters = new();
+    private string sortBy = "price-low";
+
+    private List<Room> allRooms = new()
+    {
+        new Room
+        {
+            Name = "Standard Room",
+            Location = "0.4 km from city centre",
+            RoomType = "Standard room",
+            BedInfo = "1x king size bed",
+            BathroomInfo = "1x bathroom",
+            Price = 180,
+            PriceDuration = "3 nights, 2 guests",
+            Availability = "5/10",
+            Rating = 9.6m,
+            RatingLabel = "Excellent",
+            RatingClass = "rating-excellent",
+            ReviewCount = 1920,
+            FreeCancellation = true,
+            BreakfastIncluded = true,
+            Tags = new List<string> { "#Hot deal", "#Popular" },
+            ImageUrl = "/images/Standard/standard.jpg",
+            Accommodates = 2,
+            Features = new List<string>
+            {
+                "Contemporary design with spacious layout.",
+                "Private furnished terrace or balcony.",
+                "Bath and shower in bathroom.",
+                "Mini‑bar, TV, complimentary water, bathrobes.",
+                "Suitable for 2 adults (with possible extra bed for 3rd adult/child in some cases)."
+            }
+        },
+        new Room
+        {
+            Name = "Superior Room",
+            Location = "0.5 km from city centre",
+            RoomType = "Superior room",
+            BedInfo = "1x king size bed",
+            BathroomInfo = "1x bathroom",
+            Price = 220,
+            PriceDuration = "3 nights, 2 guests",
+            Availability = "3/10",
+            Rating = 9.2m,
+            RatingLabel = "Excellent",
+            RatingClass = "rating-excellent",
+            ReviewCount = 1450,
+            FreeCancellation = true,
+            BreakfastIncluded = true,
+            Tags = new List<string> { "#Hot deal" },
+            ImageUrl = "/images/Superior/superior.jpg",
+            Accommodates = 2,
+            Features = new List<string>
+            {
+                "Similar high quality décor to Standard, but with upgraded view: terrace or balcony overlooking the golf course and/or pool.",
+                "Private furnished terrace.",
+                "Bath & shower, minibar, TV, etc. (consistent with the hotel standard)",
+                "Slightly larger size or better vantage point than the Standard."
+            }
+        },
+        new Room
+        {
+            Name = "Junior Suite",
+            Location = "0.3 km from city centre",
+            RoomType = "Junior Suite",
+            BedInfo = "1x king size bed + sofa bed",
+            BathroomInfo = "1x bathroom",
+            Price = 320,
+            PriceDuration = "3 nights, 2 guests",
+            Availability = "7/10",
+            Rating = 9.4m,
+            RatingLabel = "Excellent",
+            RatingClass = "rating-excellent",
+            ReviewCount = 980,
+            FreeCancellation = true,
+            BreakfastIncluded = true,
+            Tags = new List<string> { "#Popular" },
+            ImageUrl = "/images/Junior/junior.jpg",
+            Accommodates = 3,
+            Features = new List<string>
+            {
+                "One‑bedroom suite offering separate living space (for example lounge with sofa‑bed) plus bedroom.",
+                "Private terrace with sun beds and magnificent views (sea, pool or golf course).",
+                "Bathroom may include a hydro‑massage bath and separate shower.",
+                "Suitable for up to 3 adults or 2 adults + 2 children (depending on configuration)."
+            }
+        },
+        new Room
+        {
+            Name = "Family Room",
+            Location = "0.6 km from city centre",
+            RoomType = "Family Room",
+            BedInfo = "2x queen size beds",
+            BathroomInfo = "1x bathroom",
+            Price = 280,
+            PriceDuration = "3 nights, 2 guests",
+            Availability = "4/10",
+            Rating = 8.8m,
+            RatingLabel = "Very Good",
+            RatingClass = "rating-good",
+            ReviewCount = 650,
+            FreeCancellation = true,
+            BreakfastIncluded = true,
+            Tags = new List<string> { "#Hot deal" },
+            ImageUrl = "/images/Family/fam1.jpg",
+            Accommodates = 4,
+            Features = new List<string>
+            {
+                "Spacious room designed for families; comfortable for parents + children.",
+                "Private furnished terrace with views (golf course or pool).",
+                "Standard room amenities (minibar, bath & shower, TV, etc.)"
+            }
+        },
+        new Room
+        {
+            Name = "Two-Bedroom Suite",
+            Location = "0.4 km from city centre",
+            RoomType = "Two-Bedroom Suite",
+            BedInfo = "2x king size beds + sofa bed",
+            BathroomInfo = "2x bathrooms",
+            Price = 450,
+            PriceDuration = "3 nights, 2 guests",
+            Availability = "2/10",
+            Rating = 9.7m,
+            RatingLabel = "Excellent",
+            RatingClass = "rating-excellent",
+            ReviewCount = 420,
+            FreeCancellation = true,
+            BreakfastIncluded = true,
+            Tags = new List<string> { "#Popular" },
+            ImageUrl = "/images/TwoBedroom/twobed1.jpg",
+            Accommodates = 5,
+            Features = new List<string>
+            {
+                "Two separate bedrooms + living room (with sofa‑bed) + large terrace or balcony.",
+                "Kitchen (or kitchenette) included in apartment style.",
+                "Bathroom with either bathtub or shower.",
+                "Accommodates up to 5 adults or 4 adults + 2 children (up to 12 years) depending on configuration."
+            }
+        }
+    };
+
+    private List<Room> filteredRooms => GetFilteredRooms();
+
+    private List<Room> GetFilteredRooms()
+    {
+        var rooms = allRooms.AsEnumerable();
+
+        if (selectedRoomTypes.Any())
+        {
+            var roomTypeMap = new Dictionary<string, string>
+            {
+                { "standard", "Standard Room" },
+                { "superior", "Superior Room" },
+                { "juniorsuite", "Junior Suite" },
+                { "familyroom", "Family Room" },
+                { "tbedroomsuite", "Two-Bedroom Suite" }
+            };
+            
+            var selectedNames = selectedRoomTypes.Select(t => roomTypeMap.GetValueOrDefault(t, "")).Where(n => !string.IsNullOrEmpty(n));
+            rooms = rooms.Where(r => selectedNames.Contains(r.Name));
+        }
+
+        if (selectedGuests.Any())
+        {
+            var guestCounts = selectedGuests.Select(g => g == "6" ? 6 : int.Parse(g)).ToList();
+            rooms = rooms.Where(r => guestCounts.Any(g => r.Accommodates >= g || (g == 6 && r.Accommodates >= 6)));
+        }
+
+        if (minPrice.HasValue)
+        {
+            rooms = rooms.Where(r => r.Price >= minPrice.Value);
+        }
+
+        if (maxPrice.HasValue)
+        {
+            rooms = rooms.Where(r => r.Price <= maxPrice.Value);
+        }
+
+        if (priceFilter == "expensive")
+        {
+            rooms = rooms.OrderByDescending(r => r.Price);
+        }
+        else if (priceFilter == "affordable")
+        {
+            rooms = rooms.OrderBy(r => r.Price);
+        }
+
+        if (popularFilters.Contains("breakfast"))
+        {
+            rooms = rooms.Where(r => r.BreakfastIncluded);
+        }
+
+        rooms = sortBy switch
+        {
+            "price-low" => rooms.OrderBy(r => r.Price),
+            "price-high" => rooms.OrderByDescending(r => r.Price),
+            "rating" => rooms.OrderByDescending(r => r.Rating),
+            "popular" => rooms.OrderByDescending(r => r.ReviewCount),
+            _ => rooms
+        };
+
+        return rooms.ToList();
+    }
+
+    private void ShowSourcesModal()
+    {
+    }
+
+    private void OpenReservationModal(Room room)
+    {
+        selectedRoom = room;
+        showReservationModal = true;
+        StateHasChanged();
+    }
+
+    private void CloseReservationModal()
+    {
+        showReservationModal = false;
+        selectedRoom = null;
+    }
+
+    private void ToggleRoomType(string roomType, object? isChecked)
+    {
+        if (isChecked is bool checkedValue)
+        {
+            if (checkedValue)
+            {
+                if (!selectedRoomTypes.Contains(roomType))
+                    selectedRoomTypes.Add(roomType);
+            }
+            else
+            {
+                selectedRoomTypes.Remove(roomType);
+            }
+        }
+    }
+
+    private void ToggleGuests(string guest, object? isChecked)
+    {
+        if (isChecked is bool checkedValue)
+        {
+            if (checkedValue)
+            {
+                if (!selectedGuests.Contains(guest))
+                    selectedGuests.Add(guest);
+            }
+            else
+            {
+                selectedGuests.Remove(guest);
+            }
+        }
+    }
+
+    private void TogglePopularFilter(string filter, object? isChecked)
+    {
+        if (isChecked is bool checkedValue)
+        {
+            if (checkedValue)
+            {
+                if (!popularFilters.Contains(filter))
+                    popularFilters.Add(filter);
+            }
+            else
+            {
+                popularFilters.Remove(filter);
+            }
+        }
+    }
+
+    public class Room
+    {
+        public string Name { get; set; } = "";
+        public string Location { get; set; } = "";
+        public string RoomType { get; set; } = "";
+        public string BedInfo { get; set; } = "";
+        public string BathroomInfo { get; set; } = "";
+        public decimal Price { get; set; }
+        public string PriceDuration { get; set; } = "";
+        public string Availability { get; set; } = "";
+        public decimal Rating { get; set; }
+        public string RatingLabel { get; set; } = "";
+        public string RatingClass { get; set; } = "";
+        public int ReviewCount { get; set; }
+        public bool FreeCancellation { get; set; }
+        public bool BreakfastIncluded { get; set; }
+        public List<string> Tags { get; set; } = new();
+        public string ImageUrl { get; set; } = "";
+        public int Accommodates { get; set; }
+        public List<string> Features { get; set; } = new();
+    }
+}
+

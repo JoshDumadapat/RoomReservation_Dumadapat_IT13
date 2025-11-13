@@ -1,0 +1,259 @@
+@if (ShowModal && SelectedRoom != null)
+{
+    <div class="modal-overlay" @onclick="CloseModal" style="display: flex;">
+        <div class="modal-content reservation-modal" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h2>Vanderson Seafront Resort</h2>
+                <button class="modal-close" @onclick="CloseModal" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body reservation-body">
+                <p class="reservation-subheader">123 Resort Boulevard, Coastal City, Beachfront Paradise</p>
+                
+                <div class="reservation-image-gallery">
+                    @foreach (var image in RoomImages)
+                    {
+                        <div class="gallery-image-item" @onclick="@(() => ShowImageZoom(image))">
+                            <img src="@image" alt="Room image" />
+                        </div>
+                    }
+                </div>
+
+                @if (ZoomedImage != null)
+                {
+                    <div class="image-zoom-overlay" @onclick="CloseImageZoom">
+                        <div class="image-zoom-container" @onclick:stopPropagation="true">
+                            <button class="zoom-close" @onclick="CloseImageZoom">&times;</button>
+                            <img src="@ZoomedImage" alt="Zoomed room image" />
+                        </div>
+                    </div>
+                }
+
+                <div class="reservation-room-info">
+                    <div class="reservation-room-header">
+                        <h3 class="reservation-room-type">@SelectedRoom.Name</h3>
+                        <div class="reservation-availability">
+                            <span class="availability-label">Available</span>
+                            <span class="availability-separator">|</span>
+                            <span class="availability-count">@SelectedRoom.Availability</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="reservation-badges">
+                    @if (SelectedRoom.FreeCancellation)
+                    {
+                        <span class="feature-badge">Free Cancellation</span>
+                    }
+                    @if (SelectedRoom.BreakfastIncluded)
+                    {
+                        <span class="feature-badge">Free Breakfast</span>
+                    }
+                    @if (SelectedRoom.Price >= 300)
+                    {
+                        <span class="feature-badge">Free Dinner</span>
+                    }
+                </div>
+
+                <div class="reservation-features">
+                    <div class="room-features-label">Room feature:</div>
+                    <div class="room-features-grid">
+                        <div class="feature-item">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                <path d="M9 9h6v6H9z"/>
+                            </svg>
+                            <span>@SelectedRoom.BathroomInfo</span>
+                        </div>
+                        <div class="feature-item">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/>
+                                <path d="M3 6h18"/>
+                                <path d="M16 10a4 4 0 0 1-8 0"/>
+                            </svg>
+                            <span>@SelectedRoom.BedInfo</span>
+                        </div>
+                        <div class="feature-item">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                            </svg>
+                            <span>@SelectedRoom.Accommodates persons</span>
+                        </div>
+                        <div class="feature-item">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                            </svg>
+                            <span>Free WiFi</span>
+                        </div>
+                    </div>
+                </div>
+
+                @if (SelectedRoom.Tags != null && SelectedRoom.Tags.Count > 0)
+                {
+                    <div class="reservation-tags">
+                        @foreach (var tag in SelectedRoom.Tags)
+                        {
+                            <span class="room-tag">@tag</span>
+                        }
+                    </div>
+                }
+
+                <div class="reservation-price-rating">
+                    <div class="reservation-rating">
+                        <span class="rating-score @SelectedRoom.RatingClass">@SelectedRoom.Rating</span>
+                        <span class="rating-reviews">@SelectedRoom.ReviewCount reviews</span>
+                    </div>
+                    <div class="reservation-price">
+                        <label class="price-label">Total Price</label>
+                        <span class="price-amount">$@SelectedRoom.Price</span>
+                    </div>
+                </div>
+
+                <form class="reservation-form" @onsubmit="HandleSubmit" @onsubmit:preventDefault="true">
+                    <h3 class="form-title">Reservation Details</h3>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="customerFname">First Name *</label>
+                            <input type="text" id="customerFname" @bind="ReservationData.CustomerFname" class="form-input" placeholder="Enter first name" required />
+                        </div>
+                        <div class="form-group">
+                            <label for="customerLname">Last Name *</label>
+                            <input type="text" id="customerLname" @bind="ReservationData.CustomerLname" class="form-input" placeholder="Enter last name" required />
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="contactNum">Contact Number *</label>
+                            <input type="tel" id="contactNum" @bind="ReservationData.ContactNum" class="form-input" placeholder="Enter contact number" required />
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email *</label>
+                            <input type="email" id="email" @bind="ReservationData.Email" class="form-input" placeholder="Enter email address" required />
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="checkInDate">Check-In Date *</label>
+                            <input type="date" id="checkInDate" @bind="ReservationData.CheckInDate" class="form-input" required />
+                        </div>
+                        <div class="form-group">
+                            <label for="checkOutDate">Check-Out Date *</label>
+                            <input type="date" id="checkOutDate" @bind="ReservationData.CheckOutDate" class="form-input" required />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="roomType">Room Type</label>
+                        <input type="text" id="roomType" @bind="ReservationData.RoomType" class="form-input" readonly />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="roomPrice">Room Price</label>
+                        <input type="number" id="roomPrice" @bind="ReservationData.RoomPrice" class="form-input" step="0.01" readonly />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="status">Status</label>
+                        <input type="text" id="status" @bind="ReservationData.Status" class="form-input status-input" readonly />
+                    </div>
+
+                    <button type="submit" class="btn-reservation-submit">Confirm Reservation</button>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool ShowModal { get; set; } = false;
+    [Parameter] public Booking.Room? SelectedRoom { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private List<string> RoomImages { get; set; } = new();
+    private string? ZoomedImage { get; set; }
+
+    public class ReservationFormData
+    {
+        public string CustomerFname { get; set; } = "";
+        public string CustomerLname { get; set; } = "";
+        public string ContactNum { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string RoomType { get; set; } = "";
+        public DateTime CheckInDate { get; set; } = DateTime.Today;
+        public DateTime CheckOutDate { get; set; } = DateTime.Today.AddDays(1);
+        public string Status { get; set; } = "Pending";
+        public decimal RoomPrice { get; set; } = 0;
+    }
+
+    private ReservationFormData ReservationData { get; set; } = new();
+
+    protected override void OnParametersSet()
+    {
+        if (SelectedRoom != null)
+        {
+            LoadRoomImages();
+            ReservationData.RoomType = SelectedRoom.RoomType;
+            ReservationData.RoomPrice = SelectedRoom.Price;
+            ReservationData.Status = "Pending";
+            StateHasChanged();
+        }
+    }
+
+    private void LoadRoomImages()
+    {
+        if (SelectedRoom == null) return;
+
+        RoomImages.Clear();
+        string folderPath = SelectedRoom.RoomType.ToLower() switch
+        {
+            "standard room" => "/images/Standard/",
+            "superior room" => "/images/Superior/",
+            "junior suite" => "/images/Junior/",
+            "family room" => "/images/Family/",
+            "two-bedroom suite" => "/images/TwoBedroom/",
+            _ => "/images/Standard/"
+        };
+
+        var imageFiles = SelectedRoom.RoomType.ToLower() switch
+        {
+            "standard room" => new[] { "standard.jpg", "standard1.jpg", "standar2.jpg", "standard3.jpg", "standard4.jpg" },
+            "superior room" => new[] { "superior.jpg", "superior1.jpg", "superior2.jpg", "superior3.jpg" },
+            "junior suite" => new[] { "junior.jpg", "junior1.jpg" },
+            "family room" => new[] { "fam.jpg", "fam1.jpg", "fam2.jpg" },
+            "two-bedroom suite" => new[] { "twobed.jpg", "twobed1.jpg", "twobed2.jpg" },
+            _ => new[] { "standard.jpg" }
+        };
+
+        foreach (var imageFile in imageFiles)
+        {
+            RoomImages.Add($"{folderPath}{imageFile}");
+        }
+    }
+
+    private void ShowImageZoom(string image)
+    {
+        ZoomedImage = image;
+    }
+
+    private void CloseImageZoom()
+    {
+        ZoomedImage = null;
+    }
+
+    private void CloseModal()
+    {
+        OnClose.InvokeAsync();
+    }
+
+    private void HandleSubmit()
+    {
+        // Backend integration will be added later
+        Console.WriteLine("Reservation submitted");
+    }
+}
+

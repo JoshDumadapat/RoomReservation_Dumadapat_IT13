@@ -1,0 +1,82 @@
+@page "/login"
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+<div class="login-container">
+    <nav class="navbar-section">
+        <div class="nav-content">
+            <img src="/images/logo.png" alt="Logo" class="nav-logo" />
+            <div class="nav-links">
+                <a href="/" class="nav-link">Home</a>
+                <a href="/#about" class="nav-link">About</a>
+                <a href="#" class="nav-link">Sources</a>
+                <a href="/booking" class="btn-book-now">Book Now</a>
+                <a href="/login" class="btn-login">Login</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="login-content">
+        <div class="login-card">
+            <div class="login-logo">
+                <img src="/images/logo.png" alt="Logo" />
+            </div>
+            <h2 class="login-title">Log In</h2>
+            <p class="login-subheader">Welcome back! Please enter your credentials to access your account.</p>
+            <form class="login-form" @onsubmit="HandleLogin" @onsubmit:preventDefault="true">
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="error-message">@errorMessage</div>
+                }
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" @bind="email" class="form-input" placeholder="Enter your email" required />
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" @bind="password" class="form-input" placeholder="Enter your password" required />
+                </div>
+                <div class="form-options">
+                    <label class="checkbox-label">
+                        <input type="checkbox" @bind="rememberMe" />
+                        <span>Remember me</span>
+                    </label>
+                    <a href="#" class="forgot-password">Forgot password?</a>
+                </div>
+                <button type="submit" class="btn-login-submit">Login</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string email = "";
+    private string password = "";
+    private bool rememberMe = false;
+    private string errorMessage = "";
+
+    private const string ADMIN_EMAIL = "admin@vanderson.com";
+    private const string ADMIN_PASSWORD = "admin123";
+
+    private async Task HandleLogin()
+    {
+        errorMessage = "";
+
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+        {
+            errorMessage = "Please enter both email and password.";
+            return;
+        }
+
+        if (email == ADMIN_EMAIL && password == ADMIN_PASSWORD)
+        {
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "isAuthenticated", "true");
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "userEmail", email);
+            Navigation.NavigateTo("/dashboard");
+        }
+        else
+        {
+            errorMessage = "Invalid email or password.";
+        }
+    }
+}
