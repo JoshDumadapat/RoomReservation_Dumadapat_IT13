@@ -265,24 +265,18 @@
             isLoading = true;
             StateHasChanged();
 
-            // Fetch all reservations
             var allReservations = await DatabaseService.GetAllReservationsAsync();
-            
-            // Fetch all cancelled reservations
             var allCancelledReservations = await DatabaseService.GetAllRemovedReservationsAsync();
 
-            // Calculate statistics
             totalReservations = allReservations.Count;
             totalCancelled = allCancelledReservations.Count;
 
-            // Calculate total successful (confirmed, checked-in, checked-out reservations)
             totalSuccessful = allReservations.Count(r => 
                 r.Status != null && 
                 (r.Status.Equals("Confirmed", StringComparison.OrdinalIgnoreCase) ||
                  r.Status.Equals("Checked-in", StringComparison.OrdinalIgnoreCase) ||
                  r.Status.Equals("Checked-out", StringComparison.OrdinalIgnoreCase)));
 
-            // Calculate total profit from successful reservations
             totalProfit = allReservations
                 .Where(r => r.Status != null && 
                     (r.Status.Equals("Confirmed", StringComparison.OrdinalIgnoreCase) ||
@@ -290,13 +284,11 @@
                      r.Status.Equals("Checked-out", StringComparison.OrdinalIgnoreCase)))
                 .Sum(r => r.RoomPrice);
 
-            // Load recent activities
             await LoadRecentActivities(allReservations, allCancelledReservations);
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Error loading dashboard data: {ex.Message}");
-            // Set defaults on error
             totalProfit = 0m;
             totalReservations = 0;
             totalCancelled = 0;
@@ -314,7 +306,6 @@
     {
         var activities = new List<ActivityItem>();
 
-        // Add recent reservations (last 10, ordered by date created)
         var recentReservations = reservations
             .OrderByDescending(r => r.DateCreated)
             .Take(10)
@@ -328,7 +319,6 @@
 
         activities.AddRange(recentReservations);
 
-        // Add recent cancellations (last 10, ordered by date removed)
         var recentCancellations = cancelledReservations
             .OrderByDescending(r => r.DateRemoved)
             .Take(10)
@@ -342,7 +332,6 @@
 
         activities.AddRange(recentCancellations);
 
-        // Sort by date and take the 10 most recent
         recentActivities = activities
             .OrderByDescending(a => a.ActivityDate)
             .Take(10)

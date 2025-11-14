@@ -926,19 +926,17 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // Set up numeric-only input for contact number field
         try
         {
             await JSRuntime.InvokeVoidAsync("preventNonNumeric", contactNumberInput);
         }
         catch { }
         
-        // Set up numeric-only input for edit contact number field if modal is open
         if (showEditModal)
         {
             try
             {
-                await Task.Delay(50); // Small delay to ensure DOM is ready
+                await Task.Delay(50);
                 await JSRuntime.InvokeVoidAsync("preventNonNumeric", editContactNumberInput);
             }
             catch { }
@@ -1234,22 +1232,16 @@
             return;
         }
 
-        // Check if search term is a number (for ID search)
         bool isNumeric = int.TryParse(searchTerm, out int searchId);
 
-        // Filter from the full list
         reservations = allReservationsList.Where(r =>
         {
-            // If numeric search, check for exact ID match first
             if (isNumeric)
             {
-                // If exact ID match, return only that
                 if (r.ReservationID == searchId)
                 {
                     return true;
                 }
-                // For numeric searches, also check if ID contains the number (e.g., "3" matches "13", "23", etc.)
-                // but don't search in contact numbers to avoid false matches
                 return r.ReservationID.ToString().Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
                        (r.CustomerFname?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
                        (r.CustomerLname?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
@@ -1258,7 +1250,6 @@
                        (r.Status?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false);
             }
 
-            // For non-numeric searches, search in all fields including contact numbers
             return (r.CustomerFname?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
                    (r.CustomerLname?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
                    (r.Email?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||

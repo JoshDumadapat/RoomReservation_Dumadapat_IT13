@@ -6,36 +6,8 @@ namespace RoomReservation_Dumadapat_IT13.Services
 {
     public class DatabaseService
     {
-        // Connection String - UPDATE THIS WITH YOUR SERVER DETAILS
-        // 
-        // HOW TO GET YOUR CONNECTION STRING FROM SERVER EXPLORER:
-        // 1. In Visual Studio, open Server Explorer (View → Server Explorer)
-        // 2. Expand "Data Connections"
-        // 3. Right-click on your database connection
-        // 4. Select "Properties"
-        // 5. Find the "Connection String" property and copy it
-        // 6. Replace the connectionString value below with your copied connection string
-        //
-        // OR use one of these templates based on your setup:
-        
-        // For SQL Server with Windows Authentication (most common):
-        // private readonly string connectionString = "Data Source=YOUR_SERVER_NAME;Initial Catalog=YOUR_DATABASE_NAME;Integrated Security=True;TrustServerCertificate=True;";
-        
-        // For SQL Server Named Instance (e.g., SQLEXPRESS):
-        // private readonly string connectionString = "Data Source=YOUR_SERVER_NAME\\SQLEXPRESS;Initial Catalog=YOUR_DATABASE_NAME;Integrated Security=True;TrustServerCertificate=True;";
-        
-        // For LocalDB:
-        // private readonly string connectionString = "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=YOUR_DATABASE_NAME;Integrated Security=True;TrustServerCertificate=True;";
-        
-        // For SQL Server Authentication:
-        // private readonly string connectionString = "Data Source=YOUR_SERVER_NAME;Initial Catalog=YOUR_DATABASE_NAME;User ID=your_username;Password=your_password;TrustServerCertificate=True;";
-        
-        // Connection string from Server Explorer - Using correct database name
         private readonly string connectionString = "Data Source=(localdb)\\MSSQLLocalDB;Initial Catalog=DB_RoomReservation_Dumadapat_IT13;Integrated Security=True;Persist Security Info=False;Pooling=False;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=True;";
 
-        /// <summary>
-        /// Adds a new reservation to the tblReservations table
-        /// </summary>
         public async Task<int> AddReservationAsync(Reservation reservation)
         {
             try
@@ -71,9 +43,6 @@ namespace RoomReservation_Dumadapat_IT13.Services
             }
         }
 
-        /// <summary>
-        /// Seeds 3 default users in the tblUsers table if they don't already exist
-        /// </summary>
         public async Task SeedUsersAsync()
         {
             try
@@ -81,13 +50,11 @@ namespace RoomReservation_Dumadapat_IT13.Services
                 using var connection = new SqlConnection(connectionString);
                 await connection.OpenAsync();
 
-                // Check if users already exist
                 string checkQuery = "SELECT COUNT(*) FROM [dbo].[tblUsers]";
                 using var checkCommand = new SqlCommand(checkQuery, connection);
                 var result = await checkCommand.ExecuteScalarAsync();
                 var userCount = result != null ? (int)result : 0;
 
-                // Only seed if table is empty
                 if (userCount == 0)
                 {
                     string insertQuery = @"
@@ -99,21 +66,18 @@ namespace RoomReservation_Dumadapat_IT13.Services
 
                     using var command = new SqlCommand(insertQuery, connection);
 
-                    // User 1
                     command.Parameters.AddWithValue("@Fname1", "John");
                     command.Parameters.AddWithValue("@Lname1", "Doe");
                     command.Parameters.AddWithValue("@Cnumber1", "09123456789");
                     command.Parameters.AddWithValue("@Email1", "john.doe@vanderson.com");
                     command.Parameters.AddWithValue("@Password1", "admin123");
 
-                    // User 2
                     command.Parameters.AddWithValue("@Fname2", "Jane");
                     command.Parameters.AddWithValue("@Lname2", "Smith");
                     command.Parameters.AddWithValue("@Cnumber2", "09987654321");
                     command.Parameters.AddWithValue("@Email2", "jane.smith@vanderson.com");
                     command.Parameters.AddWithValue("@Password2", "admin456");
 
-                    // User 3
                     command.Parameters.AddWithValue("@Fname3", "Robert");
                     command.Parameters.AddWithValue("@Lname3", "Johnson");
                     command.Parameters.AddWithValue("@Cnumber3", "09555123456");
@@ -129,9 +93,6 @@ namespace RoomReservation_Dumadapat_IT13.Services
             }
         }
 
-        /// <summary>
-        /// Gets all reservations from the tblReservations table
-        /// </summary>
         public async Task<List<Reservation>> GetAllReservationsAsync()
         {
             var reservations = new List<Reservation>();
@@ -172,9 +133,6 @@ namespace RoomReservation_Dumadapat_IT13.Services
             return reservations;
         }
 
-        /// <summary>
-        /// Updates an existing reservation in the tblReservations table
-        /// </summary>
         public async Task<bool> UpdateReservationAsync(Reservation reservation)
         {
             try
@@ -216,9 +174,6 @@ namespace RoomReservation_Dumadapat_IT13.Services
             }
         }
 
-        /// <summary>
-        /// Gets all removed/cancelled reservations from the tblRemovedReservation table
-        /// </summary>
         public async Task<List<RemovedReservation>> GetAllRemovedReservationsAsync()
         {
             var removedReservations = new List<RemovedReservation>();
@@ -267,9 +222,6 @@ namespace RoomReservation_Dumadapat_IT13.Services
             return removedReservations;
         }
 
-        /// <summary>
-        /// Adds a removed reservation to the tblRemovedReservation table
-        /// </summary>
         public async Task<int> AddRemovedReservationAsync(RemovedReservation removedReservation)
         {
             try
@@ -308,9 +260,6 @@ namespace RoomReservation_Dumadapat_IT13.Services
             }
         }
 
-        /// <summary>
-        /// Permanently deletes a removed reservation from tblRemovedReservations by RemovedID
-        /// </summary>
         public async Task<bool> DeleteRemovedReservationAsync(int removedId)
         {
             try
@@ -332,9 +281,6 @@ namespace RoomReservation_Dumadapat_IT13.Services
             }
         }
 
-        /// <summary>
-        /// Permanently deletes multiple removed reservations from tblRemovedReservations by RemovedIDs
-        /// </summary>
         public async Task<int> DeleteMultipleRemovedReservationsAsync(List<int> removedIds)
         {
             if (removedIds == null || removedIds.Count == 0)
@@ -345,7 +291,6 @@ namespace RoomReservation_Dumadapat_IT13.Services
                 using var connection = new SqlConnection(connectionString);
                 await connection.OpenAsync();
 
-                // Create parameterized query for multiple IDs
                 var parameters = string.Join(",", removedIds.Select((_, index) => $"@id{index}"));
                 string query = $"DELETE FROM [dbo].[tblRemovedReservations] WHERE RemovedID IN ({parameters})";
 
@@ -364,9 +309,6 @@ namespace RoomReservation_Dumadapat_IT13.Services
             }
         }
 
-        /// <summary>
-        /// Authenticates a user by email and password from tblUsers
-        /// </summary>
         public async Task<Admin?> AuthenticateUserAsync(string email, string password)
         {
             try
@@ -403,9 +345,6 @@ namespace RoomReservation_Dumadapat_IT13.Services
             return null;
         }
 
-        /// <summary>
-        /// Deletes a reservation from tblReservations by ReservationID
-        /// </summary>
         public async Task<bool> DeleteReservationAsync(int reservationId)
         {
             try
@@ -427,9 +366,6 @@ namespace RoomReservation_Dumadapat_IT13.Services
             }
         }
 
-        /// <summary>
-        /// Gets all users from tblUsers
-        /// </summary>
         public async Task<List<Admin>> GetAllUsersAsync()
         {
             var users = new List<Admin>();
@@ -465,9 +401,6 @@ namespace RoomReservation_Dumadapat_IT13.Services
             return users;
         }
 
-        /// <summary>
-        /// Gets a user by AdminID from tblUsers
-        /// </summary>
         public async Task<Admin?> GetUserByIdAsync(int adminId)
         {
             try
