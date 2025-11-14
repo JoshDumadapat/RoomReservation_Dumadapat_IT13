@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using RoomReservation_Dumadapat_IT13.Services;
 
 namespace RoomReservation_Dumadapat_IT13
 {
@@ -16,12 +17,34 @@ namespace RoomReservation_Dumadapat_IT13
 
             builder.Services.AddMauiBlazorWebView();
 
+            // Register DatabaseService as a singleton
+            builder.Services.AddSingleton<DatabaseService>();
+
 #if DEBUG
     		builder.Services.AddBlazorWebViewDeveloperTools();
     		builder.Logging.AddDebug();
 #endif
 
-            return builder.Build();
+            var app = builder.Build();
+
+            // Seed users on application startup (fire and forget)
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    // Small delay to ensure app is fully initialized
+                    await Task.Delay(1000);
+                    var dbService = app.Services.GetRequiredService<DatabaseService>();
+                    await dbService.SeedUsersAsync();
+                }
+                catch (Exception ex)
+                {
+                    // Log error but don't crash the app
+                    System.Diagnostics.Debug.WriteLine($"Error seeding users: {ex.Message}");
+                }
+            });
+
+            return app;
         }
     }
 }

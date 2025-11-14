@@ -1,16 +1,36 @@
 @page "/dashboard"
+@using System.Linq
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
+@inject DatabaseService DatabaseService
 @implements IAsyncDisposable
 
 <div class="dashboard-container">
-    <aside class="dashboard-sidebar">
+    <button class="mobile-sidebar-toggle" @onclick="ToggleMobileSidebar" aria-label="Toggle sidebar">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            @if (showMobileSidebar)
+            {
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+            }
+            else
+            {
+                <line x1="3" y1="12" x2="21" y2="12"/>
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <line x1="3" y1="18" x2="21" y2="18"/>
+            }
+        </svg>
+    </button>
+    @if (showMobileSidebar)
+    {
+        <div class="mobile-sidebar-overlay" @onclick="ToggleMobileSidebar"></div>
+    }
+    <aside class="dashboard-sidebar @(showMobileSidebar ? "mobile-sidebar-open" : "")">
         <div class="sidebar-header">
             <img src="/images/logo.png" alt="Logo" class="sidebar-logo" />
-            <h2 class="sidebar-title">Admin Panel</h2>
         </div>
         <nav class="sidebar-nav">
-            <a href="/dashboard" class="nav-item @(currentPage == "dashboard" ? "active" : "")" @onclick="@(() => SetActivePage("dashboard"))">
+            <a href="/dashboard" class="nav-item @(currentPage == "dashboard" ? "active" : "")" @onclick="@(() => { SetActivePage("dashboard"); CloseMobileSidebar(); })">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="3" width="7" height="7"/>
                     <rect x="14" y="3" width="7" height="7"/>
@@ -19,22 +39,22 @@
                 </svg>
                 <span>Dashboard</span>
             </a>
-            <a href="/dashboard/reservations" class="nav-item @(currentPage == "reservations" ? "active" : "")" @onclick="@(() => SetActivePage("reservations"))">
+            <a href="/dashboard/reservations" class="nav-item @(currentPage == "reservations" ? "active" : "")" @onclick="@(() => { SetActivePage("reservations"); CloseMobileSidebar(); })">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
                     <circle cx="9" cy="7" r="4"/>
                     <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
                     <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                 </svg>
-                <span>Reservation Management</span>
+                <span>Reservations</span>
             </a>
-            <a href="/dashboard/removed" class="nav-item @(currentPage == "removed" ? "active" : "")" @onclick="@(() => SetActivePage("removed"))">
+            <a href="/dashboard/removed" class="nav-item @(currentPage == "removed" ? "active" : "")" @onclick="@(() => { SetActivePage("removed"); CloseMobileSidebar(); })">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 6h18"/>
-                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="15" y1="9" x2="9" y2="15"/>
+                    <line x1="9" y1="9" x2="15" y2="15"/>
                 </svg>
-                <span>Removed Reservations</span>
+                <span>Cancelled Reservations</span>
             </a>
             <a href="/login" class="nav-item logout-item" @onclick="ShowLogoutConfirmation" @onclick:preventDefault>
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -48,19 +68,35 @@
     </aside>
 
     <main class="dashboard-main">
+        <div class="floating-navbar">
+            <div class="navbar-user-profile">
+                <div class="navbar-avatar">@userInitial</div>
+                <div class="navbar-user-info">
+                    <span class="navbar-user-name">@userDisplayName</span>
+                    <span class="navbar-user-role">Admin</span>
+                </div>
+                <button class="navbar-dropdown-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m6 9 6 6 6-6"/>
+                    </svg>
+                </button>
+            </div>
+            <button class="navbar-notification-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+                <span class="notification-badge-navbar"></span>
+            </button>
+        </div>
         <div class="dashboard-header">
             <h1 class="dashboard-title">Dashboard</h1>
-            <div class="dashboard-user">
-                <span>Welcome, Admin</span>
-            </div>
         </div>
 
         <div class="dashboard-stats">
             <div class="stat-card">
                 <div class="stat-icon profit">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                    </svg>
+                    <span class="peso-icon">$</span>
                 </div>
                 <div class="stat-content">
                     <h3 class="stat-label">Total Profit</h3>
@@ -115,43 +151,51 @@
             <div class="content-section">
                 <h2 class="section-title">Recent Activity</h2>
                 <div class="activity-list">
-                    <div class="activity-item">
-                        <div class="activity-icon success">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                                <polyline points="22 4 12 14.01 9 11.01"/>
-                            </svg>
+                    @if (isLoading)
+                    {
+                        <div class="activity-item">
+                            <div class="activity-content">
+                                <p class="activity-text">Loading activities...</p>
+                            </div>
                         </div>
-                        <div class="activity-content">
-                            <p class="activity-text">New reservation confirmed</p>
-                            <span class="activity-time">2 hours ago</span>
+                    }
+                    else if (recentActivities.Count == 0)
+                    {
+                        <div class="activity-item">
+                            <div class="activity-content">
+                                <p class="activity-text">No recent activity</p>
+                            </div>
                         </div>
-                    </div>
-                    <div class="activity-item">
-                        <div class="activity-icon cancelled">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="10"/>
-                                <line x1="15" y1="9" x2="9" y2="15"/>
-                                <line x1="9" y1="9" x2="15" y2="15"/>
-                            </svg>
-                        </div>
-                        <div class="activity-content">
-                            <p class="activity-text">Reservation cancelled</p>
-                            <span class="activity-time">5 hours ago</span>
-                        </div>
-                    </div>
-                    <div class="activity-item">
-                        <div class="activity-icon success">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                                <polyline points="22 4 12 14.01 9 11.01"/>
-                            </svg>
-                        </div>
-                        <div class="activity-content">
-                            <p class="activity-text">New reservation confirmed</p>
-                            <span class="activity-time">1 day ago</span>
-                        </div>
-                    </div>
+                    }
+                    else
+                    {
+                        @foreach (var activity in recentActivities)
+                        {
+                            <div class="activity-item">
+                                <div class="activity-icon @activity.Type">
+                                    @if (activity.Type == "success")
+                                    {
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                            <polyline points="22 4 12 14.01 9 11.01"/>
+                                        </svg>
+                                    }
+                                    else
+                                    {
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <line x1="15" y1="9" x2="9" y2="15"/>
+                                            <line x1="9" y1="9" x2="15" y2="15"/>
+                                        </svg>
+                                    }
+                                </div>
+                                <div class="activity-content">
+                                    <p class="activity-text">@activity.Message</p>
+                                    <span class="activity-time">@activity.TimeAgo</span>
+                                </div>
+                            </div>
+                        }
+                    }
                 </div>
             </div>
         </div>
@@ -178,15 +222,187 @@
 
 @code {
     private string currentPage = "dashboard";
-    private decimal totalProfit = 125000.00m;
-    private int totalReservations = 342;
-    private int totalCancelled = 28;
-    private int totalSuccessful = 314;
+    private bool showMobileSidebar = false;
+    private string userDisplayName = "Admin User";
+    private string userInitial = "A";
+
+    private void ToggleMobileSidebar()
+    {
+        showMobileSidebar = !showMobileSidebar;
+    }
+
+    private void CloseMobileSidebar()
+    {
+        showMobileSidebar = false;
+    }
+    private decimal totalProfit = 0m;
+    private int totalReservations = 0;
+    private int totalCancelled = 0;
+    private int totalSuccessful = 0;
     private bool showLogoutModal = false;
+    private bool isLoading = true;
+    private List<ActivityItem> recentActivities = new List<ActivityItem>();
+
+    private class ActivityItem
+    {
+        public string Type { get; set; } = "success";
+        public string Message { get; set; } = "";
+        public string TimeAgo { get; set; } = "";
+        public DateTime ActivityDate { get; set; }
+    }
 
     protected override async Task OnInitializedAsync()
     {
         await CheckAuthentication();
+        await LoadCurrentUser();
+        await LoadDashboardData();
+    }
+
+    private async Task LoadDashboardData()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            // Fetch all reservations
+            var allReservations = await DatabaseService.GetAllReservationsAsync();
+            
+            // Fetch all cancelled reservations
+            var allCancelledReservations = await DatabaseService.GetAllRemovedReservationsAsync();
+
+            // Calculate statistics
+            totalReservations = allReservations.Count;
+            totalCancelled = allCancelledReservations.Count;
+
+            // Calculate total successful (confirmed, checked-in, checked-out reservations)
+            totalSuccessful = allReservations.Count(r => 
+                r.Status != null && 
+                (r.Status.Equals("Confirmed", StringComparison.OrdinalIgnoreCase) ||
+                 r.Status.Equals("Checked-in", StringComparison.OrdinalIgnoreCase) ||
+                 r.Status.Equals("Checked-out", StringComparison.OrdinalIgnoreCase)));
+
+            // Calculate total profit from successful reservations
+            totalProfit = allReservations
+                .Where(r => r.Status != null && 
+                    (r.Status.Equals("Confirmed", StringComparison.OrdinalIgnoreCase) ||
+                     r.Status.Equals("Checked-in", StringComparison.OrdinalIgnoreCase) ||
+                     r.Status.Equals("Checked-out", StringComparison.OrdinalIgnoreCase)))
+                .Sum(r => r.RoomPrice);
+
+            // Load recent activities
+            await LoadRecentActivities(allReservations, allCancelledReservations);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading dashboard data: {ex.Message}");
+            // Set defaults on error
+            totalProfit = 0m;
+            totalReservations = 0;
+            totalCancelled = 0;
+            totalSuccessful = 0;
+            recentActivities = new List<ActivityItem>();
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadRecentActivities(List<Models.Reservation> reservations, List<Models.RemovedReservation> cancelledReservations)
+    {
+        var activities = new List<ActivityItem>();
+
+        // Add recent reservations (last 10, ordered by date created)
+        var recentReservations = reservations
+            .OrderByDescending(r => r.DateCreated)
+            .Take(10)
+            .Select(r => new ActivityItem
+            {
+                Type = "success",
+                Message = $"New reservation from {r.CustomerFname} {r.CustomerLname} - {r.RoomType}",
+                TimeAgo = GetTimeAgo(r.DateCreated ?? DateTime.Now),
+                ActivityDate = r.DateCreated ?? DateTime.Now
+            });
+
+        activities.AddRange(recentReservations);
+
+        // Add recent cancellations (last 10, ordered by date removed)
+        var recentCancellations = cancelledReservations
+            .OrderByDescending(r => r.DateRemoved)
+            .Take(10)
+            .Select(r => new ActivityItem
+            {
+                Type = "cancelled",
+                Message = $"Reservation cancelled - {r.CustomerFname} {r.CustomerLname} - {r.RoomType}",
+                TimeAgo = GetTimeAgo(r.DateRemoved ?? DateTime.Now),
+                ActivityDate = r.DateRemoved ?? DateTime.Now
+            });
+
+        activities.AddRange(recentCancellations);
+
+        // Sort by date and take the 10 most recent
+        recentActivities = activities
+            .OrderByDescending(a => a.ActivityDate)
+            .Take(10)
+            .ToList();
+    }
+
+    private string GetTimeAgo(DateTime dateTime)
+    {
+        var timeSpan = DateTime.Now - dateTime;
+
+        if (timeSpan.TotalMinutes < 1)
+            return "Just now";
+        else if (timeSpan.TotalMinutes < 60)
+            return $"{(int)timeSpan.TotalMinutes} minute(s) ago";
+        else if (timeSpan.TotalHours < 24)
+            return $"{(int)timeSpan.TotalHours} hour(s) ago";
+        else if (timeSpan.TotalDays < 7)
+            return $"{(int)timeSpan.TotalDays} day(s) ago";
+        else if (timeSpan.TotalDays < 30)
+            return $"{(int)(timeSpan.TotalDays / 7)} week(s) ago";
+        else if (timeSpan.TotalDays < 365)
+            return $"{(int)(timeSpan.TotalDays / 30)} month(s) ago";
+        else
+            return $"{(int)(timeSpan.TotalDays / 365)} year(s) ago";
+    }
+
+    private async Task LoadCurrentUser()
+    {
+        try
+        {
+            var userEmail = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "userEmail");
+            if (!string.IsNullOrEmpty(userEmail))
+            {
+                var allUsers = await DatabaseService.GetAllUsersAsync();
+                var currentUser = allUsers.FirstOrDefault(u => u.Email == userEmail);
+                if (currentUser != null)
+                {
+                    // Set display name
+                    if (!string.IsNullOrWhiteSpace(currentUser.Fname) && !string.IsNullOrWhiteSpace(currentUser.Lname))
+                    {
+                        userDisplayName = $"{currentUser.Fname} {currentUser.Lname}";
+                        userInitial = currentUser.Fname[0].ToString().ToUpper();
+                    }
+                    else if (!string.IsNullOrWhiteSpace(currentUser.Fname))
+                    {
+                        userDisplayName = currentUser.Fname;
+                        userInitial = currentUser.Fname[0].ToString().ToUpper();
+                    }
+                    else if (!string.IsNullOrWhiteSpace(currentUser.Email))
+                    {
+                        userDisplayName = currentUser.Email;
+                        userInitial = currentUser.Email[0].ToString().ToUpper();
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading user: {ex.Message}");
+        }
     }
 
     private async Task CheckAuthentication()

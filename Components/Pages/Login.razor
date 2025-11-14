@@ -1,17 +1,33 @@
 @page "/login"
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
+@inject DatabaseService DatabaseService
 
 <div class="login-container">
     <nav class="navbar-section">
         <div class="nav-content">
             <img src="/images/logo.png" alt="Logo" class="nav-logo" />
-            <div class="nav-links">
-                <a href="/" class="nav-link">Home</a>
-                <a href="/#about" class="nav-link">About</a>
+            <button class="mobile-menu-toggle" @onclick="ToggleMobileMenu" aria-label="Toggle menu">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    @if (showMobileMenu)
+                    {
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    }
+                    else
+                    {
+                        <line x1="3" y1="12" x2="21" y2="12"/>
+                        <line x1="3" y1="6" x2="21" y2="6"/>
+                        <line x1="3" y1="18" x2="21" y2="18"/>
+                    }
+                </svg>
+            </button>
+            <div class="nav-links @(showMobileMenu ? "mobile-menu-open" : "")">
+                <a href="/" class="nav-link" @onclick="CloseMobileMenu">Home</a>
+                <a href="/#about" class="nav-link" @onclick="CloseMobileMenu">About</a>
                 <a href="#" class="nav-link">Sources</a>
-                <a href="/booking" class="btn-book-now">Book Now</a>
-                <a href="/login" class="btn-login">Login</a>
+                <a href="/booking" class="btn-book-now" @onclick="CloseMobileMenu">Book Now</a>
+                <a href="/login" class="btn-login" @onclick="CloseMobileMenu">Login</a>
             </div>
         </div>
     </nav>
@@ -54,9 +70,17 @@
     private string password = "";
     private bool rememberMe = false;
     private string errorMessage = "";
+    private bool showMobileMenu = false;
 
-    private const string ADMIN_EMAIL = "admin@vanderson.com";
-    private const string ADMIN_PASSWORD = "admin123";
+    private void ToggleMobileMenu()
+    {
+        showMobileMenu = !showMobileMenu;
+    }
+
+    private void CloseMobileMenu()
+    {
+        showMobileMenu = false;
+    }
 
     private async Task HandleLogin()
     {
@@ -68,15 +92,24 @@
             return;
         }
 
-        if (email == ADMIN_EMAIL && password == ADMIN_PASSWORD)
+        try
         {
-            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "isAuthenticated", "true");
-            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "userEmail", email);
-            Navigation.NavigateTo("/dashboard");
+            var user = await DatabaseService.AuthenticateUserAsync(email, password);
+            
+            if (user != null)
+            {
+                await JSRuntime.InvokeVoidAsync("localStorage.setItem", "isAuthenticated", "true");
+                await JSRuntime.InvokeVoidAsync("localStorage.setItem", "userEmail", email);
+                Navigation.NavigateTo("/dashboard");
+            }
+            else
+            {
+                errorMessage = "Invalid email or password.";
+            }
         }
-        else
+        catch (Exception ex)
         {
-            errorMessage = "Invalid email or password.";
+            errorMessage = $"Error during login: {ex.Message}";
         }
     }
 }

@@ -1,16 +1,36 @@
 @page "/dashboard/removed"
 @using RoomReservation_Dumadapat_IT13.Models
+@using System.Linq
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
+@inject DatabaseService DatabaseService
 
 <div class="dashboard-container">
-    <aside class="dashboard-sidebar">
+    <button class="mobile-sidebar-toggle" @onclick="ToggleMobileSidebar" aria-label="Toggle sidebar">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            @if (showMobileSidebar)
+            {
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+            }
+            else
+            {
+                <line x1="3" y1="12" x2="21" y2="12"/>
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <line x1="3" y1="18" x2="21" y2="18"/>
+            }
+        </svg>
+    </button>
+    @if (showMobileSidebar)
+    {
+        <div class="mobile-sidebar-overlay" @onclick="ToggleMobileSidebar"></div>
+    }
+    <aside class="dashboard-sidebar @(showMobileSidebar ? "mobile-sidebar-open" : "")">
         <div class="sidebar-header">
             <img src="/images/logo.png" alt="Logo" class="sidebar-logo" />
-            <h2 class="sidebar-title">Admin Panel</h2>
         </div>
         <nav class="sidebar-nav">
-            <a href="/dashboard" class="nav-item">
+            <a href="/dashboard" class="nav-item" @onclick="CloseMobileSidebar">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="3" width="7" height="7"/>
                     <rect x="14" y="3" width="7" height="7"/>
@@ -19,20 +39,20 @@
                 </svg>
                 <span>Dashboard</span>
             </a>
-            <a href="/dashboard/reservations" class="nav-item">
+            <a href="/dashboard/reservations" class="nav-item" @onclick="CloseMobileSidebar">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
                     <circle cx="9" cy="7" r="4"/>
                     <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
                     <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                 </svg>
-                <span>Reservation Management</span>
+                <span>Reservations</span>
             </a>
-            <a href="/dashboard/removed" class="nav-item active">
+            <a href="/dashboard/removed" class="nav-item active" @onclick="CloseMobileSidebar">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 6h18"/>
-                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="15" y1="9" x2="9" y2="15"/>
+                    <line x1="9" y1="9" x2="15" y2="15"/>
                 </svg>
                 <span>Cancelled Reservations</span>
             </a>
@@ -48,6 +68,27 @@
     </aside>
 
     <main class="dashboard-main">
+        <div class="floating-navbar">
+            <div class="navbar-user-profile">
+                <div class="navbar-avatar">@userInitial</div>
+                <div class="navbar-user-info">
+                    <span class="navbar-user-name">@userDisplayName</span>
+                    <span class="navbar-user-role">Admin</span>
+                </div>
+                <button class="navbar-dropdown-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m6 9 6 6 6-6"/>
+                    </svg>
+                </button>
+            </div>
+            <button class="navbar-notification-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+                <span class="notification-badge-navbar"></span>
+            </button>
+        </div>
         <div class="dashboard-header">
             <h1 class="dashboard-title">Cancelled Reservations</h1>
         </div>
@@ -101,11 +142,26 @@
             </div>
 
             <div class="table-section">
-                <h2 class="section-title">Cancelled Reservations List</h2>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h2 class="section-title" style="margin: 0;">Cancelled Reservations List</h2>
+                    @if (selectedReservationIds.Count > 0)
+                    {
+                        <button class="btn-delete-selected" @onclick="ShowDeleteConfirmModal">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="m19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                            Delete Selected (@selectedReservationIds.Count)
+                        </button>
+                    }
+                </div>
                 <div class="table-container">
                     <table class="reservation-table">
                         <thead>
                             <tr>
+                                <th style="width: 40px;">
+                                    <input type="checkbox" checked="@selectAll" @onchange="HandleSelectAll" />
+                                </th>
                                 <th>Name</th>
                                 <th>Reservation ID</th>
                                 <th>Email</th>
@@ -118,20 +174,25 @@
                             @if (cancelledReservations == null || cancelledReservations.Count == 0)
                             {
                                 <tr>
-                                    <td colspan="6" class="no-data">No cancelled reservations found</td>
+                                    <td colspan="7" class="no-data">No cancelled reservations found</td>
                                 </tr>
                             }
                             else
                             {
                                 @foreach (var reservation in cancelledReservations)
                                 {
-                                    <tr class="table-row-clickable" @onclick="@(() => ShowDetailsModal(reservation))">
-                                        <td>@reservation.CustomerFname @reservation.CustomerLname</td>
-                                        <td>@(reservation.ReservationID?.ToString() ?? "-")</td>
-                                        <td>@reservation.Email</td>
-                                        <td>@reservation.RoomType</td>
-                                        <td>@(reservation.AdminName ?? reservation.RemovedBy ?? "-")</td>
-                                        <td><span class="status-badge status-cancelled">@reservation.Status</span></td>
+                                    <tr class="table-row-clickable">
+                                        <td @onclick:stopPropagation="true">
+                                            <input type="checkbox" 
+                                                   checked="@selectedReservationIds.Contains(reservation.RemovedID)"
+                                                   @onchange="@((ChangeEventArgs e) => HandleCheckboxChange(reservation.RemovedID, e.Value?.ToString() == "True"))" />
+                                        </td>
+                                        <td @onclick="@(() => ShowDetailsModal(reservation))">@reservation.CustomerFname @reservation.CustomerLname</td>
+                                        <td @onclick="@(() => ShowDetailsModal(reservation))">@(reservation.ReservationID?.ToString() ?? "-")</td>
+                                        <td @onclick="@(() => ShowDetailsModal(reservation))">@reservation.Email</td>
+                                        <td @onclick="@(() => ShowDetailsModal(reservation))">@reservation.RoomType</td>
+                                        <td @onclick="@(() => ShowDetailsModal(reservation))">@(reservation.AdminName ?? reservation.RemovedBy ?? "-")</td>
+                                        <td @onclick="@(() => ShowDetailsModal(reservation))"><span class="status-badge status-cancelled">@reservation.Status</span></td>
                                     </tr>
                                 }
                             }
@@ -161,6 +222,41 @@
     </div>
 }
 
+@if (showDeleteConfirmModal)
+{
+    <div class="modal-overlay" @onclick="CloseDeleteConfirmModal">
+        <div class="modal-content delete-confirm-modal" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h2>Confirm Permanent Deletion</h2>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to permanently delete <strong>@selectedReservationIds.Count</strong> cancelled reservation(s)? This action cannot be undone.</p>
+                <div class="modal-actions">
+                    <button class="btn-cancel" @onclick="CloseDeleteConfirmModal">Cancel</button>
+                    <button class="btn-confirm-error" @onclick="ConfirmDeleteSelected">Delete Permanently</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showNotificationModal)
+{
+    <div class="modal-overlay" @onclick="CloseNotificationModal">
+        <div class="modal-content notification-modal" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h2>@(notificationType == "error" ? "Error" : "Notification")</h2>
+            </div>
+            <div class="modal-body">
+                <p>@notificationMessage</p>
+                <div class="modal-actions">
+                    <button class="@(notificationType == "error" ? "btn-confirm-error" : "btn-confirm-success")" @onclick="CloseNotificationModal">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @if (showDetailsModal && selectedReservation != null)
 {
     <div class="modal-overlay" @onclick="CloseDetailsModal">
@@ -175,62 +271,80 @@
                 </button>
             </div>
             <div class="modal-body details-body">
-                <div class="details-grid">
-                    <div class="detail-item">
-                        <label>Removed ID:</label>
-                        <span>@selectedReservation.RemovedID</span>
+                <!-- Personal Information Section -->
+                <div class="details-section">
+                    <h3 class="section-title">Personal Information</h3>
+                    <div class="details-grid">
+                        <div class="detail-item">
+                            <label>First Name:</label>
+                            <span>@selectedReservation.CustomerFname</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Last Name:</label>
+                            <span>@selectedReservation.CustomerLname</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Contact Number:</label>
+                            <span>@selectedReservation.ContactNum</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Email:</label>
+                            <span>@selectedReservation.Email</span>
+                        </div>
                     </div>
-                    <div class="detail-item">
-                        <label>Reservation ID:</label>
-                        <span>@(selectedReservation.ReservationID?.ToString() ?? "-")</span>
+                </div>
+
+                <!-- Reservation Information Section -->
+                <div class="details-section">
+                    <h3 class="section-title">Reservation Information</h3>
+                    <div class="details-grid">
+                        <div class="detail-item">
+                            <label>Removed ID:</label>
+                            <span>@selectedReservation.RemovedID</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Reservation ID:</label>
+                            <span>@(selectedReservation.ReservationID?.ToString() ?? "-")</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Room Type:</label>
+                            <span>@selectedReservation.RoomType</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Check-In Date:</label>
+                            <span>@(selectedReservation.CheckInDate?.ToString("MM/dd/yyyy") ?? "-")</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Check-Out Date:</label>
+                            <span>@(selectedReservation.CheckOutDate?.ToString("MM/dd/yyyy") ?? "-")</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Status:</label>
+                            <span class="status-badge status-cancelled">@selectedReservation.Status</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Room Price:</label>
+                            <span>$@selectedReservation.RoomPrice.ToString("F2")</span>
+                        </div>
                     </div>
-                    <div class="detail-item">
-                        <label>First Name:</label>
-                        <span>@selectedReservation.CustomerFname</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>Last Name:</label>
-                        <span>@selectedReservation.CustomerLname</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>Contact Number:</label>
-                        <span>@selectedReservation.ContactNum</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>Email:</label>
-                        <span>@selectedReservation.Email</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>Room Type:</label>
-                        <span>@selectedReservation.RoomType</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>Check-In Date:</label>
-                        <span>@(selectedReservation.CheckInDate?.ToString("MM/dd/yyyy") ?? "-")</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>Check-Out Date:</label>
-                        <span>@(selectedReservation.CheckOutDate?.ToString("MM/dd/yyyy") ?? "-")</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>Status:</label>
-                        <span class="status-badge status-cancelled">@selectedReservation.Status</span>
-                    </div>
-                    <div class="detail-item full-width">
-                        <label>Reason for Cancellation:</label>
-                        <span>@selectedReservation.ReasonNote</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>Cancelled By:</label>
-                        <span>@(selectedReservation.AdminName ?? selectedReservation.RemovedBy ?? "-")</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>Date Removed:</label>
-                        <span>@(selectedReservation.DateRemoved?.ToString("MM/dd/yyyy HH:mm") ?? "-")</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>Room Price:</label>
-                        <span>$@selectedReservation.RoomPrice.ToString("F2")</span>
+                </div>
+
+                <!-- Reason of Cancellation Section -->
+                <div class="details-section">
+                    <h3 class="section-title">Reason of Cancellation</h3>
+                    <div class="details-grid">
+                        <div class="detail-item full-width">
+                            <label>Reason for Cancellation:</label>
+                            <span>@selectedReservation.ReasonNote</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Cancelled By:</label>
+                            <span>@(selectedReservation.AdminName ?? selectedReservation.RemovedBy ?? "-")</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Date Removed:</label>
+                            <span>@(selectedReservation.DateRemoved?.ToString("MM/dd/yyyy HH:mm") ?? "-")</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -252,16 +366,66 @@
     private bool showLogoutModal = false;
     private bool showDetailsModal = false;
     private RoomReservation_Dumadapat_IT13.Models.RemovedReservation? selectedReservation = null;
+    private bool showMobileSidebar = false;
+    private string userDisplayName = "Admin User";
+    private string userInitial = "A";
+    private HashSet<int> selectedReservationIds = new HashSet<int>();
+    private bool selectAll = false;
+    private bool showDeleteConfirmModal = false;
+    private string notificationMessage = "";
+    private string notificationType = "success";
+    private bool showNotificationModal = false;
+
+    private void ToggleMobileSidebar()
+    {
+        showMobileSidebar = !showMobileSidebar;
+    }
+
+    private void CloseMobileSidebar()
+    {
+        showMobileSidebar = false;
+    }
 
     protected override async Task OnInitializedAsync()
     {
         await CheckAuthentication();
-        LoadAllCancelledReservations();
-        
-        // Initialize with sample data if empty
-        if (allCancelledReservations.Count == 0)
+        await LoadAllCancelledReservations();
+        await LoadCurrentUser();
+    }
+
+    private async Task LoadCurrentUser()
+    {
+        try
         {
-            InitializeSampleCancelledData();
+            var userEmail = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "userEmail");
+            if (!string.IsNullOrEmpty(userEmail))
+            {
+                var allUsers = await DatabaseService.GetAllUsersAsync();
+                var currentUser = allUsers.FirstOrDefault(u => u.Email == userEmail);
+                if (currentUser != null)
+                {
+                    // Set display name
+                    if (!string.IsNullOrWhiteSpace(currentUser.Fname) && !string.IsNullOrWhiteSpace(currentUser.Lname))
+                    {
+                        userDisplayName = $"{currentUser.Fname} {currentUser.Lname}";
+                        userInitial = currentUser.Fname[0].ToString().ToUpper();
+                    }
+                    else if (!string.IsNullOrWhiteSpace(currentUser.Fname))
+                    {
+                        userDisplayName = currentUser.Fname;
+                        userInitial = currentUser.Fname[0].ToString().ToUpper();
+                    }
+                    else if (!string.IsNullOrWhiteSpace(currentUser.Email))
+                    {
+                        userDisplayName = currentUser.Email;
+                        userInitial = currentUser.Email[0].ToString().ToUpper();
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading user: {ex.Message}");
         }
     }
 
@@ -274,56 +438,21 @@
         }
     }
 
-    private void InitializeSampleCancelledData()
-    {
-        allCancelledReservations = new List<RoomReservation_Dumadapat_IT13.Models.RemovedReservation>
-        {
-            new RoomReservation_Dumadapat_IT13.Models.RemovedReservation
-            {
-                RemovedID = 1,
-                ReservationID = 101,
-                CustomerFname = "Alice",
-                CustomerLname = "Williams",
-                ContactNum = "1111111111",
-                Email = "alice.williams@email.com",
-                RoomType = "Family Room",
-                CheckInDate = DateTime.Now.AddDays(-10),
-                CheckOutDate = DateTime.Now.AddDays(-7),
-                Status = "Cancelled",
-                ReasonNote = "Customer requested cancellation due to change of plans",
-                AdminID = 1,
-                RemovedBy = "Admin User",
-                DateRemoved = DateTime.Now.AddDays(-8),
-                RoomPrice = 250.00m,
-                AdminName = "Admin User"
-            },
-            new RoomReservation_Dumadapat_IT13.Models.RemovedReservation
-            {
-                RemovedID = 2,
-                ReservationID = 102,
-                CustomerFname = "Charlie",
-                CustomerLname = "Brown",
-                ContactNum = "2222222222",
-                Email = "charlie.brown@email.com",
-                RoomType = "Two-Bedroom Suite",
-                CheckInDate = DateTime.Now.AddDays(-5),
-                CheckOutDate = DateTime.Now.AddDays(-2),
-                Status = "Cancelled",
-                ReasonNote = "Emergency cancellation",
-                AdminID = 1,
-                RemovedBy = "Admin User",
-                DateRemoved = DateTime.Now.AddDays(-3),
-                RoomPrice = 400.00m,
-                AdminName = "Admin User"
-            }
-        };
-        ApplyFilters();
-    }
 
-    private void LoadAllCancelledReservations()
+    private async Task LoadAllCancelledReservations()
     {
-        // Cancelled reservations are stored in memory
-        ApplyFilters();
+        try
+        {
+            allCancelledReservations = await DatabaseService.GetAllRemovedReservationsAsync();
+            ApplyFilters();
+        }
+        catch (Exception ex)
+        {
+            // Handle error - could show notification
+            System.Diagnostics.Debug.WriteLine($"Error loading cancelled reservations: {ex.Message}");
+            allCancelledReservations = new List<Models.RemovedReservation>();
+            ApplyFilters();
+        }
     }
 
     private void HandleSearchInput(ChangeEventArgs e)
@@ -358,11 +487,6 @@
 
     private void ApplyFilters()
     {
-        if (allCancelledReservations.Count == 0)
-        {
-            InitializeSampleCancelledData();
-        }
-        
         var filtered = allCancelledReservations.AsEnumerable();
 
         // Apply search filter
@@ -406,14 +530,16 @@
         StateHasChanged();
     }
 
-    private void ClearFilters()
+    private async Task ClearFilters()
     {
         searchTerm = "";
         filterRoomType = "";
         filterStatus = "";
         filterDateFrom = "";
         filterDateTo = "";
-        LoadAllCancelledReservations();
+        selectedReservationIds.Clear();
+        selectAll = false;
+        await LoadAllCancelledReservations();
     }
 
     private void ShowLogoutConfirmation()
@@ -443,5 +569,113 @@
     {
         showDetailsModal = false;
         selectedReservation = null;
+    }
+
+    private void HandleCheckboxChange(int removedId, bool isChecked)
+    {
+        if (isChecked)
+        {
+            selectedReservationIds.Add(removedId);
+        }
+        else
+        {
+            selectedReservationIds.Remove(removedId);
+        }
+        UpdateSelectAllState();
+        StateHasChanged();
+    }
+
+    private void HandleSelectAll(ChangeEventArgs e)
+    {
+        bool isChecked = e.Value?.ToString() == "True";
+        selectAll = isChecked;
+
+        if (isChecked)
+        {
+            foreach (var reservation in cancelledReservations)
+            {
+                selectedReservationIds.Add(reservation.RemovedID);
+            }
+        }
+        else
+        {
+            selectedReservationIds.Clear();
+        }
+        StateHasChanged();
+    }
+
+    private void UpdateSelectAllState()
+    {
+        if (cancelledReservations == null || cancelledReservations.Count == 0)
+        {
+            selectAll = false;
+            return;
+        }
+
+        selectAll = cancelledReservations.All(r => selectedReservationIds.Contains(r.RemovedID));
+    }
+
+    private void ShowDeleteConfirmModal()
+    {
+        if (selectedReservationIds.Count > 0)
+        {
+            showDeleteConfirmModal = true;
+        }
+    }
+
+    private void CloseDeleteConfirmModal()
+    {
+        showDeleteConfirmModal = false;
+    }
+
+    private async Task ConfirmDeleteSelected()
+    {
+        try
+        {
+            if (selectedReservationIds.Count == 0)
+            {
+                ShowNotification("No reservations selected for deletion.", "error");
+                CloseDeleteConfirmModal();
+                return;
+            }
+
+            var idsToDelete = selectedReservationIds.ToList();
+            int deletedCount = await DatabaseService.DeleteMultipleRemovedReservationsAsync(idsToDelete);
+
+            if (deletedCount > 0)
+            {
+                ShowNotification($"Successfully deleted {deletedCount} cancelled reservation(s).", "success");
+                selectedReservationIds.Clear();
+                selectAll = false;
+                await LoadAllCancelledReservations();
+            }
+            else
+            {
+                ShowNotification("Failed to delete reservations. Please try again.", "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowNotification($"Error deleting reservations: {ex.Message}", "error");
+        }
+        finally
+        {
+            CloseDeleteConfirmModal();
+        }
+    }
+
+    private void ShowNotification(string message, string type = "success")
+    {
+        notificationMessage = message;
+        notificationType = type;
+        showNotificationModal = true;
+        StateHasChanged();
+    }
+
+    private void CloseNotificationModal()
+    {
+        showNotificationModal = false;
+        notificationMessage = "";
+        notificationType = "success";
     }
 }

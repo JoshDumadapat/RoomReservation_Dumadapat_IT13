@@ -59,14 +59,37 @@ RoomReservation_Dumadapat_IT13/
 └── RoomReservation_Dumadapat_IT13.sln
 ```
 
+## Database Setup
+
+### Prerequisites
+- **SQL Server Management Studio (SSMS)** or **SQL Server Express** with LocalDB
+- **.NET 9.0 SDK**
+
+### Setup Instructions
+
+1. **Open SQL Server Management Studio (SSMS)**
+
+2. **Run the Database Setup Script**:
+   - Open the `DB_RoomReservation_Dumadapat_Setup.sql` file in SSMS
+   - Click **Execute** (F5) to run the script
+   - This will create the database `DB_RoomReservation_Dumadapat_IT13` and all required tables
+
+3. **Verify the Setup**:
+   - Check that the database `DB_RoomReservation_Dumadapat_IT13` exists
+   - Verify three tables are created: `tblReservations`, `tblUsers`, `tblRemovedReservations`
+   - Check that 3 default admin users are inserted in `tblUsers`
+
+4. **Update Connection String** (if needed):
+   - The application uses LocalDB by default
+   - If using a different SQL Server instance, update the connection string in `Services/DatabaseService.cs`
+
 ## Default Login Credentials
 
-- **Email**: `admin@vanderson.com`
-- **Password**: `admin123`
+The following admin accounts are automatically created in the database:
 
-## Database Connection (Optional)
-
-If you want to connect to SQL Server, follow the instructions in `README_DATABASE_CONNECTION.md`.
+- **Email**: `john.doe@vanderson.com` | **Password**: `admin123`
+- **Email**: `jane.smith@vanderson.com` | **Password**: `admin456`
+- **Email**: `robert.johnson@vanderson.com` | **Password**: `admin789`
 
 ## Technologies Used
 

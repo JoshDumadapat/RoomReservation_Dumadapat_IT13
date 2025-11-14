@@ -111,7 +111,7 @@
                     </div>
                 </div>
 
-                <form class="reservation-form" @onsubmit="HandleSubmit" @onsubmit:preventDefault="true">
+                <form class="reservation-form" @onsubmit="HandleSubmit" @onsubmit:preventDefault="true" @onsubmit:stopPropagation="true">
                     <h3 class="form-title">Reservation Details</h3>
                     
                     <div class="form-row">
@@ -162,8 +162,56 @@
                         <input type="text" id="status" @bind="ReservationData.Status" class="form-input status-input" readonly />
                     </div>
 
-                    <button type="submit" class="btn-reservation-submit">Confirm Reservation</button>
+                    @if (!string.IsNullOrEmpty(submitMessage))
+                    {
+                        <div class="@(isSuccess ? "alert-success" : "alert-error")" style="padding: 10px; margin-bottom: 15px; border-radius: 4px; background-color: @(isSuccess ? "#d4edda" : "#f8d7da"); color: @(isSuccess ? "#155724" : "#721c24");">
+                            @submitMessage
+                        </div>
+                    }
+                    <button type="submit" class="btn-reservation-submit" disabled="@isSubmitting">
+                        @if (isSubmitting)
+                        {
+                            <span>Processing...</span>
+                        }
+                        else
+                        {
+                            <span>Confirm Reservation</span>
+                        }
+                    </button>
                 </form>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showSuccessModal)
+{
+    <div class="modal-overlay success-modal-overlay" @onclick="CloseSuccessModal">
+        <div class="modal-content success-modal" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h2>Reservation Confirmed!</h2>
+            </div>
+            <div class="modal-body">
+                <div class="success-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                </div>
+                <p class="success-message">Your reservation has been successfully submitted and saved to the database!</p>
+                @if (savedReservationId > 0)
+                {
+                    <p class="reservation-id">Reservation ID: <strong>@savedReservationId</strong></p>
+                }
+                <div class="reservation-summary">
+                    <p><strong>Room Type:</strong> @ReservationData.RoomType</p>
+                    <p><strong>Check-in:</strong> @ReservationData.CheckInDate.ToString("MM/dd/yyyy")</p>
+                    <p><strong>Check-out:</strong> @ReservationData.CheckOutDate.ToString("MM/dd/yyyy")</p>
+                    <p><strong>Total Price:</strong> $@ReservationData.RoomPrice.ToString("N2")</p>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-confirm-success" @onclick="CloseSuccessModal">OK</button>
+                </div>
             </div>
         </div>
     </div>
@@ -173,9 +221,16 @@
     [Parameter] public bool ShowModal { get; set; } = false;
     [Parameter] public Booking.Room? SelectedRoom { get; set; }
     [Parameter] public EventCallback OnClose { get; set; }
+    [Inject] private DatabaseService DatabaseService { get; set; } = null!;
+    [Inject] private IJSRuntime JSRuntime { get; set; } = null!;
 
     private List<string> RoomImages { get; set; } = new();
     private string? ZoomedImage { get; set; }
+    private bool isSubmitting = false;
+    private string? submitMessage = null;
+    private bool isSuccess = false;
+    private bool showSuccessModal = false;
+    private int savedReservationId = 0;
 
     public class ReservationFormData
     {
@@ -250,10 +305,104 @@
         OnClose.InvokeAsync();
     }
 
-    private void HandleSubmit()
+    private void CloseSuccessModal()
     {
-        // Backend integration will be added later
-        Console.WriteLine("Reservation submitted");
+        showSuccessModal = false;
+        savedReservationId = 0;
+        
+        // Close the reservation modal
+        CloseModal();
+        
+        // Reset form
+        ReservationData = new ReservationFormData();
+        if (SelectedRoom != null)
+        {
+            ReservationData.RoomType = SelectedRoom.RoomType;
+            ReservationData.RoomPrice = SelectedRoom.Price;
+            ReservationData.Status = "Pending";
+        }
+        
+        // Clear messages
+        submitMessage = null;
+        isSuccess = false;
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (isSubmitting) return;
+
+        try
+        {
+            isSubmitting = true;
+            submitMessage = null;
+            isSuccess = false;
+            StateHasChanged();
+
+            // Validate required fields
+            if (string.IsNullOrWhiteSpace(ReservationData.CustomerFname) ||
+                string.IsNullOrWhiteSpace(ReservationData.CustomerLname) ||
+                string.IsNullOrWhiteSpace(ReservationData.ContactNum) ||
+                string.IsNullOrWhiteSpace(ReservationData.Email))
+            {
+                submitMessage = "Please fill in all required fields.";
+                isSuccess = false;
+                StateHasChanged();
+                return;
+            }
+
+            // Validate dates
+            if (ReservationData.CheckInDate >= ReservationData.CheckOutDate)
+            {
+                submitMessage = "Check-out date must be after check-in date.";
+                isSuccess = false;
+                StateHasChanged();
+                return;
+            }
+
+            // Create reservation model
+            var reservation = new Models.Reservation
+            {
+                CustomerFname = ReservationData.CustomerFname,
+                CustomerLname = ReservationData.CustomerLname,
+                ContactNum = ReservationData.ContactNum,
+                Email = ReservationData.Email,
+                RoomType = ReservationData.RoomType,
+                CheckInDate = ReservationData.CheckInDate,
+                CheckOutDate = ReservationData.CheckOutDate,
+                Status = ReservationData.Status,
+                RoomPrice = ReservationData.RoomPrice,
+                DateCreated = DateTime.Now
+            };
+
+            // Save to database
+            var reservationId = await DatabaseService.AddReservationAsync(reservation);
+
+            if (reservationId > 0)
+            {
+                savedReservationId = reservationId;
+                submitMessage = $"Reservation confirmed! Your reservation ID is: {reservationId}";
+                isSuccess = true;
+                
+                // Show success modal
+                showSuccessModal = true;
+                StateHasChanged();
+            }
+            else
+            {
+                submitMessage = "Failed to create reservation. Please try again.";
+                isSuccess = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            submitMessage = $"Error: {ex.Message}";
+            isSuccess = false;
+        }
+        finally
+        {
+            isSubmitting = false;
+            StateHasChanged();
+        }
     }
 }
 

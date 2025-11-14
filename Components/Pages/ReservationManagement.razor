@@ -1,16 +1,36 @@
 @page "/dashboard/reservations"
 @using RoomReservation_Dumadapat_IT13.Models
+@using System.Linq
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
+@inject DatabaseService DatabaseService
 
 <div class="dashboard-container">
-    <aside class="dashboard-sidebar">
+    <button class="mobile-sidebar-toggle" @onclick="ToggleMobileSidebar" aria-label="Toggle sidebar">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            @if (showMobileSidebar)
+            {
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+            }
+            else
+            {
+                <line x1="3" y1="12" x2="21" y2="12"/>
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <line x1="3" y1="18" x2="21" y2="18"/>
+            }
+        </svg>
+    </button>
+    @if (showMobileSidebar)
+    {
+        <div class="mobile-sidebar-overlay" @onclick="ToggleMobileSidebar"></div>
+    }
+    <aside class="dashboard-sidebar @(showMobileSidebar ? "mobile-sidebar-open" : "")">
         <div class="sidebar-header">
             <img src="/images/logo.png" alt="Logo" class="sidebar-logo" />
-            <h2 class="sidebar-title">Admin Panel</h2>
         </div>
         <nav class="sidebar-nav">
-            <a href="/dashboard" class="nav-item">
+            <a href="/dashboard" class="nav-item" @onclick="CloseMobileSidebar">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="3" width="7" height="7"/>
                     <rect x="14" y="3" width="7" height="7"/>
@@ -19,20 +39,20 @@
                 </svg>
                 <span>Dashboard</span>
             </a>
-            <a href="/dashboard/reservations" class="nav-item active">
+            <a href="/dashboard/reservations" class="nav-item active" @onclick="CloseMobileSidebar">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
                     <circle cx="9" cy="7" r="4"/>
                     <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
                     <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                 </svg>
-                <span>Reservation Management</span>
+                <span>Reservations</span>
             </a>
-            <a href="/dashboard/removed" class="nav-item">
+            <a href="/dashboard/removed" class="nav-item" @onclick="CloseMobileSidebar">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 6h18"/>
-                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="15" y1="9" x2="9" y2="15"/>
+                    <line x1="9" y1="9" x2="15" y2="15"/>
                 </svg>
                 <span>Cancelled Reservations</span>
             </a>
@@ -48,37 +68,75 @@
     </aside>
 
     <main class="dashboard-main">
+        <div class="floating-navbar">
+            <div class="navbar-user-profile">
+                <div class="navbar-avatar">@userInitial</div>
+                <div class="navbar-user-info">
+                    <span class="navbar-user-name">@userDisplayName</span>
+                    <span class="navbar-user-role">Admin</span>
+                </div>
+                <button class="navbar-dropdown-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m6 9 6 6 6-6"/>
+                    </svg>
+                </button>
+            </div>
+            <button class="navbar-notification-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+                <span class="notification-badge-navbar"></span>
+            </button>
+        </div>
         <div class="dashboard-header">
             <h1 class="dashboard-title">Reservation Management</h1>
         </div>
 
         <div class="dashboard-content">
             <div class="reservation-form-section">
-                <h2 class="section-title">Reservation Information</h2>
-                <div class="form-grid">
+                <div class="form-card">
+                    <h2 class="section-title">Reservation Information</h2>
+                    <div class="form-grid">
                     <div class="form-group">
                         <label>Reservation ID</label>
                         <input type="number" @bind="currentReservation.ReservationID" class="form-input" readonly />
                     </div>
                     <div class="form-group">
                         <label>First Name *</label>
-                        <input type="text" @bind="currentReservation.CustomerFname" class="form-input" placeholder="Enter first name" />
+                        <input type="text" @bind="currentReservation.CustomerFname" @onblur="FormatFirstName" class="form-input @(string.IsNullOrEmpty(fnameError) ? "" : "input-error")" placeholder="Enter first name" />
+                        @if (!string.IsNullOrEmpty(fnameError))
+                        {
+                            <span class="error-message">@fnameError</span>
+                        }
                     </div>
                     <div class="form-group">
                         <label>Last Name *</label>
-                        <input type="text" @bind="currentReservation.CustomerLname" class="form-input" placeholder="Enter last name" />
+                        <input type="text" @bind="currentReservation.CustomerLname" @onblur="FormatLastName" class="form-input @(string.IsNullOrEmpty(lnameError) ? "" : "input-error")" placeholder="Enter last name" />
+                        @if (!string.IsNullOrEmpty(lnameError))
+                        {
+                            <span class="error-message">@lnameError</span>
+                        }
                     </div>
                     <div class="form-group">
                         <label>Contact Number *</label>
-                        <input type="text" @bind="currentReservation.ContactNum" class="form-input" placeholder="Enter contact number" />
+                        <input type="tel" @ref="contactNumberInput" id="contact-number-input" value="@currentReservation.ContactNum" @oninput="HandleContactNumberInput" @onkeydown="HandleKeyDownContact" @onblur="ValidateContactNumber" class="form-input @(string.IsNullOrEmpty(contactError) ? "" : "input-error")" placeholder="Enter contact number (max 11 digits)" maxlength="11" inputmode="numeric" pattern="[0-9]*" />
+                        @if (!string.IsNullOrEmpty(contactError))
+                        {
+                            <span class="error-message">@contactError</span>
+                        }
                     </div>
                     <div class="form-group">
                         <label>Email *</label>
-                        <input type="email" @bind="currentReservation.Email" class="form-input" placeholder="Enter email address" />
+                        <input type="email" @bind="currentReservation.Email" @onblur="ValidateEmail" class="form-input @(string.IsNullOrEmpty(emailError) ? "" : "input-error")" placeholder="Enter email address" />
+                        @if (!string.IsNullOrEmpty(emailError))
+                        {
+                            <span class="error-message">@emailError</span>
+                        }
                     </div>
                     <div class="form-group">
                         <label>Room Type *</label>
-                        <select @bind="currentReservation.RoomType" class="form-input">
+                        <select @bind="currentReservation.RoomType" @bind:after="HandleRoomTypeChange" class="form-input">
                             <option value="">Select room type</option>
                             <option value="Standard Room">Standard Room</option>
                             <option value="Superior Room">Superior Room</option>
@@ -98,50 +156,34 @@
                     <div class="form-group">
                         <label>Status *</label>
                         <select @bind="currentReservation.Status" class="form-input">
-                            <option value="">Select status</option>
                             <option value="Pending">Pending</option>
-                            <option value="Confirmed">Confirmed</option>
-                            <option value="Checked In">Checked In</option>
-                            <option value="Checked Out">Checked Out</option>
-                            <option value="Cancelled">Cancelled</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label>Room Price *</label>
-                        <input type="number" @bind="currentReservation.RoomPrice" step="0.01" class="form-input" placeholder="0.00" />
+                        <div class="price-input-wrapper">
+                            <span class="price-symbol">$</span>
+                            <input type="number" @bind="currentReservation.RoomPrice" step="0.01" class="form-input price-input" placeholder="0.00" />
+                        </div>
                     </div>
-                </div>
-                <div class="form-actions">
-                    <button class="btn btn-add" @onclick="AddReservation">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="12" y1="5" x2="12" y2="19"/>
-                            <line x1="5" y1="12" x2="19" y2="12"/>
-                        </svg>
-                        Add
-                    </button>
-                    <button class="btn btn-update" @onclick="UpdateReservation">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                        </svg>
-                        Update
-                    </button>
-                    <button class="btn btn-delete" @onclick="ShowCancelModal">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="10"/>
-                            <path d="m15 9-6 6"/>
-                            <path d="m9 9 6 6"/>
-                        </svg>
-                        Cancel Reservation
-                    </button>
-                    <button class="btn btn-clear" @onclick="ClearForm">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M3 6h18"/>
-                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-                        </svg>
-                        Clear
-                    </button>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn btn-add" @onclick="AddReservation">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="12" y1="5" x2="12" y2="19"/>
+                                <line x1="5" y1="12" x2="19" y2="12"/>
+                            </svg>
+                            Add
+                        </button>
+                        <button class="btn btn-clear" @onclick="ClearForm">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 6h18"/>
+                                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                            </svg>
+                            Clear
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -197,7 +239,7 @@
                                         <td>@(reservation.DateCreated?.ToString("MM/dd/yyyy") ?? "-")</td>
                                         <td>
                                             <div class="action-buttons">
-                                                <button class="btn-action btn-edit" @onclick="@(() => EditReservation(reservation))" title="Edit Reservation">
+                                                <button class="btn-action btn-edit" @onclick="@(() => ShowEditModal(reservation))" title="Edit Reservation">
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -237,6 +279,120 @@
                 <div class="modal-actions">
                     <button class="btn-cancel" @onclick="CloseLogoutModal">Cancel</button>
                     <button class="btn-confirm" @onclick="HandleLogout">Logout</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showEditModal)
+{
+    <div class="modal-overlay" @onclick="CloseEditModal">
+        <div class="modal-content edit-modal" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h2>Edit Reservation</h2>
+                <button class="modal-close" @onclick="CloseEditModal" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body edit-modal-body">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Reservation ID</label>
+                        <input type="number" @bind="editReservation.ReservationID" class="form-input" readonly />
+                    </div>
+                    <div class="form-group">
+                        <label>First Name *</label>
+                        <input type="text" @bind="editReservation.CustomerFname" @onblur="FormatEditFirstName" class="form-input @(string.IsNullOrEmpty(editFnameError) ? "" : "input-error")" placeholder="Enter first name" />
+                        @if (!string.IsNullOrEmpty(editFnameError))
+                        {
+                            <span class="error-message">@editFnameError</span>
+                        }
+                    </div>
+                    <div class="form-group">
+                        <label>Last Name *</label>
+                        <input type="text" @bind="editReservation.CustomerLname" @onblur="FormatEditLastName" class="form-input @(string.IsNullOrEmpty(editLnameError) ? "" : "input-error")" placeholder="Enter last name" />
+                        @if (!string.IsNullOrEmpty(editLnameError))
+                        {
+                            <span class="error-message">@editLnameError</span>
+                        }
+                    </div>
+                    <div class="form-group">
+                        <label>Contact Number *</label>
+                        <input type="tel" @ref="editContactNumberInput" id="edit-contact-number-input" value="@editReservation.ContactNum" @oninput="HandleEditContactNumberInput" @onkeydown="HandleKeyDownContact" @onblur="ValidateEditContactNumber" class="form-input @(string.IsNullOrEmpty(editContactError) ? "" : "input-error")" placeholder="Enter contact number (max 11 digits)" maxlength="11" inputmode="numeric" pattern="[0-9]*" />
+                        @if (!string.IsNullOrEmpty(editContactError))
+                        {
+                            <span class="error-message">@editContactError</span>
+                        }
+                    </div>
+                    <div class="form-group">
+                        <label>Email *</label>
+                        <input type="email" @bind="editReservation.Email" @onblur="ValidateEditEmail" class="form-input @(string.IsNullOrEmpty(editEmailError) ? "" : "input-error")" placeholder="Enter email address" />
+                        @if (!string.IsNullOrEmpty(editEmailError))
+                        {
+                            <span class="error-message">@editEmailError</span>
+                        }
+                    </div>
+                    <div class="form-group">
+                        <label>Room Type *</label>
+                        <select @bind="editReservation.RoomType" @bind:after="HandleEditRoomTypeChange" class="form-input">
+                            <option value="">Select room type</option>
+                            <option value="Standard Room">Standard Room</option>
+                            <option value="Superior Room">Superior Room</option>
+                            <option value="Junior Suite">Junior Suite</option>
+                            <option value="Family Room">Family Room</option>
+                            <option value="Two-Bedroom Suite">Two-Bedroom Suite</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Check-In Date *</label>
+                        <input type="date" value="@editCheckInDateString" @onchange="HandleEditCheckInDateChange" class="form-input" />
+                    </div>
+                    <div class="form-group">
+                        <label>Check-Out Date *</label>
+                        <input type="date" value="@editCheckOutDateString" @onchange="HandleEditCheckOutDateChange" class="form-input" />
+                    </div>
+                    <div class="form-group">
+                        <label>Status *</label>
+                        <select value="@editReservation.Status" @onchange="HandleEditStatusChange" class="form-input">
+                            <option value="">Select status</option>
+                            @if (editReservation.Status != "Pending")
+                            {
+                                <option value="Pending">Pending</option>
+                            }
+                            <option value="Confirmed">Confirmed</option>
+                            <option value="Checked In">Checked In</option>
+                            <option value="Checked Out">Checked Out</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Room Price *</label>
+                        <div class="price-input-wrapper">
+                            <span class="price-symbol">$</span>
+                            <input type="number" @bind="editReservation.RoomPrice" step="0.01" class="form-input price-input" placeholder="0.00" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-cancel" @onclick="CloseEditModal">Cancel</button>
+                    <button class="btn-confirm-success" @onclick="UpdateReservationFromModal">Update</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (showStatusConfirmModal)
+{
+    <div class="modal-overlay" @onclick="CloseStatusConfirmModal">
+        <div class="modal-content status-confirm-modal" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h2>Confirm Status Change</h2>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to change the status from <strong>@originalStatus</strong> to <strong>@pendingStatusChange</strong>?</p>
+                <div class="modal-actions">
+                    <button class="btn-cancel" @onclick="CloseStatusConfirmModal">Cancel</button>
+                    <button class="btn-confirm-success" @onclick="ConfirmStatusChange">Confirm</button>
                 </div>
             </div>
         </div>
@@ -285,7 +441,7 @@
             <div class="modal-body">
                 <p>@notificationMessage</p>
                 <div class="modal-actions">
-                    <button class="btn-confirm" @onclick="CloseNotificationModal">OK</button>
+                    <button class="@(notificationType == "error" ? "btn-confirm-error" : "btn-confirm-success")" @onclick="CloseNotificationModal">OK</button>
                 </div>
             </div>
         </div>
@@ -296,17 +452,52 @@
     private List<RoomReservation_Dumadapat_IT13.Models.Reservation> reservations = new List<RoomReservation_Dumadapat_IT13.Models.Reservation>();
     private List<RoomReservation_Dumadapat_IT13.Models.Reservation> allReservationsList = new List<RoomReservation_Dumadapat_IT13.Models.Reservation>();
     private List<RoomReservation_Dumadapat_IT13.Models.RemovedReservation> cancelledReservations = new List<RoomReservation_Dumadapat_IT13.Models.RemovedReservation>();
-    private RoomReservation_Dumadapat_IT13.Models.Reservation currentReservation = new RoomReservation_Dumadapat_IT13.Models.Reservation();
+    private RoomReservation_Dumadapat_IT13.Models.Reservation currentReservation = new RoomReservation_Dumadapat_IT13.Models.Reservation
+    {
+        Status = "Pending"
+    };
     private string searchTerm = "";
     private bool showLogoutModal = false;
     private bool showCancelModal = false;
+    private bool showEditModal = false;
     private bool showNotificationModal = false;
+    private bool showMobileSidebar = false;
+
+    private void ToggleMobileSidebar()
+    {
+        showMobileSidebar = !showMobileSidebar;
+    }
+
+    private void CloseMobileSidebar()
+    {
+        showMobileSidebar = false;
+    }
     private string cancelReason = "";
     private string notificationMessage = "";
     private string notificationType = "success";
     private string? currentUserEmail = "";
-    private int nextReservationId = 1;
-    private int nextRemovedId = 1;
+    private string userDisplayName = "Admin User";
+    private string userInitial = "A";
+    private RoomReservation_Dumadapat_IT13.Models.Reservation editReservation = new RoomReservation_Dumadapat_IT13.Models.Reservation();
+    
+    // Input element references
+    private ElementReference contactNumberInput;
+    private ElementReference editContactNumberInput;
+    
+    // Error messages for form validation
+    private string fnameError = "";
+    private string lnameError = "";
+    private string contactError = "";
+    private string emailError = "";
+    private string editFnameError = "";
+    private string editLnameError = "";
+    private string editContactError = "";
+    private string editEmailError = "";
+    
+    // Status change confirmation
+    private bool showStatusConfirmModal = false;
+    private string originalStatus = "";
+    private string pendingStatusChange = "";
 
     private string checkInDateString
     {
@@ -316,6 +507,16 @@
     private string checkOutDateString
     {
         get => currentReservation.CheckOutDate?.ToString("yyyy-MM-dd") ?? "";
+    }
+
+    private string editCheckInDateString
+    {
+        get => editReservation.CheckInDate?.ToString("yyyy-MM-dd") ?? "";
+    }
+
+    private string editCheckOutDateString
+    {
+        get => editReservation.CheckOutDate?.ToString("yyyy-MM-dd") ?? "";
     }
 
     private void HandleCheckInDateChange(ChangeEventArgs e)
@@ -344,77 +545,406 @@
         }
     }
 
-    protected override async Task OnInitializedAsync()
+    private void HandleEditCheckInDateChange(ChangeEventArgs e)
     {
-        await CheckAuthentication();
-        LoadAllReservations();
-        currentUserEmail = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "userEmail");
-        
-        // Initialize with sample data
-        if (reservations.Count == 0)
+        string value = e.Value?.ToString() ?? "";
+        if (DateTime.TryParse(value, out DateTime date))
         {
-            InitializeSampleData();
+            editReservation.CheckInDate = date;
+        }
+        else
+        {
+            editReservation.CheckInDate = null;
         }
     }
 
-    private void InitializeSampleData()
+    private void HandleEditCheckOutDateChange(ChangeEventArgs e)
     {
-        // Only initialize if empty to avoid resetting data
-        if (reservations.Count > 0 && allReservationsList.Count > 0) return;
-        
-        var sampleReservations = new List<RoomReservation_Dumadapat_IT13.Models.Reservation>
+        string value = e.Value?.ToString() ?? "";
+        if (DateTime.TryParse(value, out DateTime date))
         {
-            new RoomReservation_Dumadapat_IT13.Models.Reservation
-            {
-                ReservationID = nextReservationId++,
-                CustomerFname = "John",
-                CustomerLname = "Doe",
-                ContactNum = "1234567890",
-                Email = "john.doe@email.com",
-                RoomType = "Standard Room",
-                CheckInDate = DateTime.Now.AddDays(5),
-                CheckOutDate = DateTime.Now.AddDays(8),
-                Status = "Pending",
-                DateCreated = DateTime.Now.AddDays(-2),
-                RoomPrice = 150.00m
-            },
-            new RoomReservation_Dumadapat_IT13.Models.Reservation
-            {
-                ReservationID = nextReservationId++,
-                CustomerFname = "Jane",
-                CustomerLname = "Smith",
-                ContactNum = "0987654321",
-                Email = "jane.smith@email.com",
-                RoomType = "Superior Room",
-                CheckInDate = DateTime.Now.AddDays(10),
-                CheckOutDate = DateTime.Now.AddDays(13),
-                Status = "Confirmed",
-                DateCreated = DateTime.Now.AddDays(-1),
-                RoomPrice = 200.00m
-            },
-            new RoomReservation_Dumadapat_IT13.Models.Reservation
-            {
-                ReservationID = nextReservationId++,
-                CustomerFname = "Bob",
-                CustomerLname = "Johnson",
-                ContactNum = "5555555555",
-                Email = "bob.johnson@email.com",
-                RoomType = "Junior Suite",
-                CheckInDate = DateTime.Now.AddDays(15),
-                CheckOutDate = DateTime.Now.AddDays(19),
-                Status = "Checked In",
-                DateCreated = DateTime.Now.AddDays(-5),
-                RoomPrice = 300.00m
-            }
-        };
-        
-        if (reservations.Count == 0)
-        {
-            reservations.AddRange(sampleReservations);
+            editReservation.CheckOutDate = date;
         }
-        allReservationsList = new List<RoomReservation_Dumadapat_IT13.Models.Reservation>(reservations);
+        else
+        {
+            editReservation.CheckOutDate = null;
+        }
+    }
+
+    // Room type to price mapping
+    private Dictionary<string, decimal> roomTypePrices = new Dictionary<string, decimal>
+    {
+        { "Standard Room", 180.00m },
+        { "Superior Room", 220.00m },
+        { "Junior Suite", 320.00m },
+        { "Family Room", 280.00m },
+        { "Two-Bedroom Suite", 450.00m }
+    };
+
+    private void HandleRoomTypeChange()
+    {
+        if (!string.IsNullOrEmpty(currentReservation.RoomType) && roomTypePrices.ContainsKey(currentReservation.RoomType))
+        {
+            currentReservation.RoomPrice = roomTypePrices[currentReservation.RoomType];
+        }
+    }
+
+    private void HandleEditRoomTypeChange()
+    {
+        if (!string.IsNullOrEmpty(editReservation.RoomType) && roomTypePrices.ContainsKey(editReservation.RoomType))
+        {
+            editReservation.RoomPrice = roomTypePrices[editReservation.RoomType];
+        }
+    }
+
+    private void HandleKeyDownContact(KeyboardEventArgs e)
+    {
+        // Allow navigation and control keys
+        var allowedKeys = new[] { 
+            "Backspace", "Delete", "Tab", "Escape", "Enter",
+            "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown",
+            "Home", "End"
+        };
+
+        // If it's a single character key
+        if (e.Key.Length == 1)
+        {
+            // Only allow digits (0-9)
+            if (!char.IsDigit(e.Key[0]))
+            {
+                // Check if it's a control key combination
+                if (e.CtrlKey || e.ShiftKey || e.AltKey || e.MetaKey)
+                {
+                    // Allow control key combinations
+                    return;
+                }
+                // The JavaScript handler will prevent this, but we can also try to prevent it here
+                // Note: In Blazor, we can't directly preventDefault on KeyboardEventArgs
+                // So we rely on the JavaScript handler
+            }
+        }
+        // Allow special navigation keys
+        else if (!allowedKeys.Contains(e.Key))
+        {
+            // Allow function keys (F1-F12)
+            if (e.Key.StartsWith("F") && e.Key.Length <= 3)
+            {
+                return;
+            }
+        }
+    }
+
+    // Name formatting methods
+    private void FormatFirstName()
+    {
+        if (!string.IsNullOrWhiteSpace(currentReservation.CustomerFname))
+        {
+            string name = currentReservation.CustomerFname.Trim();
+            if (name.Length > 0)
+            {
+                currentReservation.CustomerFname = char.ToUpper(name[0]) + name.Substring(1).ToLower();
+                fnameError = "";
+            }
+        }
+        else
+        {
+            fnameError = "First name is required.";
+        }
+    }
+
+    private void FormatLastName()
+    {
+        if (!string.IsNullOrWhiteSpace(currentReservation.CustomerLname))
+        {
+            string name = currentReservation.CustomerLname.Trim();
+            if (name.Length > 0)
+            {
+                currentReservation.CustomerLname = char.ToUpper(name[0]) + name.Substring(1).ToLower();
+                lnameError = "";
+            }
+        }
+        else
+        {
+            lnameError = "Last name is required.";
+        }
+    }
+
+    private void FormatEditFirstName()
+    {
+        if (!string.IsNullOrWhiteSpace(editReservation.CustomerFname))
+        {
+            string name = editReservation.CustomerFname.Trim();
+            if (name.Length > 0)
+            {
+                editReservation.CustomerFname = char.ToUpper(name[0]) + name.Substring(1).ToLower();
+                editFnameError = "";
+            }
+        }
+        else
+        {
+            editFnameError = "First name is required.";
+        }
+    }
+
+    private void FormatEditLastName()
+    {
+        if (!string.IsNullOrWhiteSpace(editReservation.CustomerLname))
+        {
+            string name = editReservation.CustomerLname.Trim();
+            if (name.Length > 0)
+            {
+                editReservation.CustomerLname = char.ToUpper(name[0]) + name.Substring(1).ToLower();
+                editLnameError = "";
+            }
+        }
+        else
+        {
+            editLnameError = "Last name is required.";
+        }
+    }
+
+    // Contact number validation
+    private void HandleContactNumberInput(ChangeEventArgs e)
+    {
+        string value = e.Value?.ToString() ?? "";
+        // Only allow digits
+        string digitsOnly = new string(value.Where(char.IsDigit).ToArray());
+        
+        // Limit to 11 digits
+        if (digitsOnly.Length > 11)
+        {
+            digitsOnly = digitsOnly.Substring(0, 11);
+        }
+        
+        // Only update if different to avoid infinite loops
+        if (currentReservation.ContactNum != digitsOnly)
+        {
+            currentReservation.ContactNum = digitsOnly;
+            contactError = "";
+            StateHasChanged();
+            
+            // Force update the input value via JavaScript
+            _ = Task.Run(async () => {
+                try
+                {
+                    await JSRuntime.InvokeVoidAsync("eval", 
+                        $"var el = document.getElementById('contact-number-input'); if (el) el.value = '{digitsOnly}';");
+                }
+                catch { }
+            });
+        }
+    }
+
+
+
+    private void ValidateContactNumber()
+    {
+        if (string.IsNullOrWhiteSpace(currentReservation.ContactNum))
+        {
+            contactError = "Contact number is required.";
+        }
+        else if (currentReservation.ContactNum.Length < 10)
+        {
+            contactError = "Contact number must be at least 10 digits.";
+        }
+        else if (currentReservation.ContactNum.Length > 11)
+        {
+            contactError = "Contact number must not exceed 11 digits.";
+        }
+        else if (!currentReservation.ContactNum.All(char.IsDigit))
+        {
+            contactError = "Contact number must contain only numbers.";
+        }
+        else
+        {
+            contactError = "";
+        }
+    }
+
+    private void HandleEditContactNumberInput(ChangeEventArgs e)
+    {
+        string value = e.Value?.ToString() ?? "";
+        // Only allow digits
+        string digitsOnly = new string(value.Where(char.IsDigit).ToArray());
+        
+        // Limit to 11 digits
+        if (digitsOnly.Length > 11)
+        {
+            digitsOnly = digitsOnly.Substring(0, 11);
+        }
+        
+        // Only update if different to avoid infinite loops
+        if (editReservation.ContactNum != digitsOnly)
+        {
+            editReservation.ContactNum = digitsOnly;
+            editContactError = "";
+            StateHasChanged();
+            
+            // Force update the input value via JavaScript
+            _ = Task.Run(async () => {
+                try
+                {
+                    await JSRuntime.InvokeVoidAsync("eval", 
+                        $"var el = document.getElementById('edit-contact-number-input'); if (el) el.value = '{digitsOnly}';");
+                }
+                catch { }
+            });
+        }
+    }
+
+    private void ValidateEditContactNumber()
+    {
+        if (string.IsNullOrWhiteSpace(editReservation.ContactNum))
+        {
+            editContactError = "Contact number is required.";
+        }
+        else if (editReservation.ContactNum.Length < 10)
+        {
+            editContactError = "Contact number must be at least 10 digits.";
+        }
+        else if (editReservation.ContactNum.Length > 11)
+        {
+            editContactError = "Contact number must not exceed 11 digits.";
+        }
+        else if (!editReservation.ContactNum.All(char.IsDigit))
+        {
+            editContactError = "Contact number must contain only numbers.";
+        }
+        else
+        {
+            editContactError = "";
+        }
+    }
+
+    // Email validation
+    private void ValidateEmail()
+    {
+        if (string.IsNullOrWhiteSpace(currentReservation.Email))
+        {
+            emailError = "Email is required.";
+        }
+        else if (!System.Text.RegularExpressions.Regex.IsMatch(currentReservation.Email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+        {
+            emailError = "Please enter a valid email address.";
+        }
+        else
+        {
+            emailError = "";
+        }
+    }
+
+    private void ValidateEditEmail()
+    {
+        if (string.IsNullOrWhiteSpace(editReservation.Email))
+        {
+            editEmailError = "Email is required.";
+        }
+        else if (!System.Text.RegularExpressions.Regex.IsMatch(editReservation.Email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+        {
+            editEmailError = "Please enter a valid email address.";
+        }
+        else
+        {
+            editEmailError = "";
+        }
+    }
+
+    // Status change confirmation
+    private void HandleEditStatusChange(ChangeEventArgs e)
+    {
+        string newStatus = e.Value?.ToString() ?? "";
+        if (!string.IsNullOrEmpty(newStatus) && newStatus != editReservation.Status)
+        {
+            originalStatus = editReservation.Status ?? "";
+            pendingStatusChange = newStatus;
+            showStatusConfirmModal = true;
+        }
+    }
+
+    private void ConfirmStatusChange()
+    {
+        editReservation.Status = pendingStatusChange;
+        showStatusConfirmModal = false;
+        originalStatus = "";
+        pendingStatusChange = "";
         StateHasChanged();
     }
+
+    private void CloseStatusConfirmModal()
+    {
+        showStatusConfirmModal = false;
+        // Revert to original status
+        editReservation.Status = originalStatus;
+        originalStatus = "";
+        pendingStatusChange = "";
+        StateHasChanged();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckAuthentication();
+        await LoadAllReservations();
+        currentUserEmail = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "userEmail");
+        await LoadCurrentUser();
+    }
+
+    private async Task LoadCurrentUser()
+    {
+        try
+        {
+            var userEmail = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "userEmail");
+            if (!string.IsNullOrEmpty(userEmail))
+            {
+                var allUsers = await DatabaseService.GetAllUsersAsync();
+                var currentUser = allUsers.FirstOrDefault(u => u.Email == userEmail);
+                if (currentUser != null)
+                {
+                    // Set display name
+                    if (!string.IsNullOrWhiteSpace(currentUser.Fname) && !string.IsNullOrWhiteSpace(currentUser.Lname))
+                    {
+                        userDisplayName = $"{currentUser.Fname} {currentUser.Lname}";
+                        userInitial = currentUser.Fname[0].ToString().ToUpper();
+                    }
+                    else if (!string.IsNullOrWhiteSpace(currentUser.Fname))
+                    {
+                        userDisplayName = currentUser.Fname;
+                        userInitial = currentUser.Fname[0].ToString().ToUpper();
+                    }
+                    else if (!string.IsNullOrWhiteSpace(currentUser.Email))
+                    {
+                        userDisplayName = currentUser.Email;
+                        userInitial = currentUser.Email[0].ToString().ToUpper();
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error loading user: {ex.Message}");
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Set up numeric-only input for contact number field
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("preventNonNumeric", contactNumberInput);
+        }
+        catch { }
+        
+        // Set up numeric-only input for edit contact number field if modal is open
+        if (showEditModal)
+        {
+            try
+            {
+                await Task.Delay(50); // Small delay to ensure DOM is ready
+                await JSRuntime.InvokeVoidAsync("preventNonNumeric", editContactNumberInput);
+            }
+            catch { }
+        }
+    }
+
 
     private async Task CheckAuthentication()
     {
@@ -425,13 +955,21 @@
         }
     }
 
-    private void LoadAllReservations()
+    private async Task LoadAllReservations()
     {
-        // Reservations are stored in memory
-        StateHasChanged();
+        try
+        {
+            reservations = await DatabaseService.GetAllReservationsAsync();
+            allReservationsList = new List<Models.Reservation>(reservations);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            ShowNotification($"Error loading reservations: {ex.Message}", "error");
+        }
     }
 
-    private void AddReservation()
+    private async Task AddReservation()
     {
         if (string.IsNullOrWhiteSpace(currentReservation.CustomerFname) ||
             string.IsNullOrWhiteSpace(currentReservation.CustomerLname) ||
@@ -447,96 +985,33 @@
             return;
         }
 
-        currentReservation.ReservationID = nextReservationId++;
-        currentReservation.DateCreated = DateTime.Now;
-        
-        var newReservation = new RoomReservation_Dumadapat_IT13.Models.Reservation
+        try
         {
-            ReservationID = currentReservation.ReservationID,
-            CustomerFname = currentReservation.CustomerFname,
-            CustomerLname = currentReservation.CustomerLname,
-            ContactNum = currentReservation.ContactNum,
-            Email = currentReservation.Email,
-            RoomType = currentReservation.RoomType,
-            CheckInDate = currentReservation.CheckInDate,
-            CheckOutDate = currentReservation.CheckOutDate,
-            Status = currentReservation.Status,
-            DateCreated = currentReservation.DateCreated,
-            RoomPrice = currentReservation.RoomPrice
-        };
-        
-        reservations.Add(newReservation);
-        allReservationsList.Add(newReservation);
-        
-        ShowNotification("Reservation added successfully!", "success");
-        ClearForm();
-        LoadAllReservations();
-    }
-
-    private void UpdateReservation()
-    {
-        if (currentReservation.ReservationID == 0)
-        {
-            ShowNotification("Please select a reservation to update.", "error");
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(currentReservation.CustomerFname) ||
-            string.IsNullOrWhiteSpace(currentReservation.CustomerLname) ||
-            string.IsNullOrWhiteSpace(currentReservation.ContactNum) ||
-            string.IsNullOrWhiteSpace(currentReservation.Email) ||
-            string.IsNullOrWhiteSpace(currentReservation.RoomType) ||
-            currentReservation.CheckInDate == null ||
-            currentReservation.CheckOutDate == null ||
-            string.IsNullOrWhiteSpace(currentReservation.Status) ||
-            currentReservation.RoomPrice <= 0)
-        {
-            ShowNotification("Please fill in all required fields.", "error");
-            return;
-        }
-
-        var existingReservation = reservations.FirstOrDefault(r => r.ReservationID == currentReservation.ReservationID);
-        var existingInMasterList = allReservationsList.FirstOrDefault(r => r.ReservationID == currentReservation.ReservationID);
-        
-        if (existingReservation != null)
-        {
-            existingReservation.CustomerFname = currentReservation.CustomerFname;
-            existingReservation.CustomerLname = currentReservation.CustomerLname;
-            existingReservation.ContactNum = currentReservation.ContactNum;
-            existingReservation.Email = currentReservation.Email;
-            existingReservation.RoomType = currentReservation.RoomType;
-            existingReservation.CheckInDate = currentReservation.CheckInDate;
-            existingReservation.CheckOutDate = currentReservation.CheckOutDate;
-            existingReservation.Status = currentReservation.Status;
-            existingReservation.RoomPrice = currentReservation.RoomPrice;
+            currentReservation.DateCreated = DateTime.Now;
             
-            // Also update in master list
-            if (existingInMasterList != null)
+            var reservationId = await DatabaseService.AddReservationAsync(currentReservation);
+            
+            if (reservationId > 0)
             {
-                existingInMasterList.CustomerFname = currentReservation.CustomerFname;
-                existingInMasterList.CustomerLname = currentReservation.CustomerLname;
-                existingInMasterList.ContactNum = currentReservation.ContactNum;
-                existingInMasterList.Email = currentReservation.Email;
-                existingInMasterList.RoomType = currentReservation.RoomType;
-                existingInMasterList.CheckInDate = currentReservation.CheckInDate;
-                existingInMasterList.CheckOutDate = currentReservation.CheckOutDate;
-                existingInMasterList.Status = currentReservation.Status;
-                existingInMasterList.RoomPrice = currentReservation.RoomPrice;
+                ShowNotification("Reservation added successfully!", "success");
+                ClearForm();
+                await LoadAllReservations();
             }
-            
-            ShowNotification("Reservation updated successfully!", "success");
-            ClearForm();
-            LoadAllReservations();
+            else
+            {
+                ShowNotification("Failed to add reservation. Please try again.", "error");
+            }
         }
-        else
+        catch (Exception ex)
         {
-            ShowNotification("Reservation not found.", "error");
+            ShowNotification($"Error adding reservation: {ex.Message}", "error");
         }
     }
 
-    private void EditReservation(RoomReservation_Dumadapat_IT13.Models.Reservation reservation)
+
+    private async Task ShowEditModal(RoomReservation_Dumadapat_IT13.Models.Reservation reservation)
     {
-        currentReservation = new RoomReservation_Dumadapat_IT13.Models.Reservation
+        editReservation = new RoomReservation_Dumadapat_IT13.Models.Reservation
         {
             ReservationID = reservation.ReservationID,
             CustomerFname = reservation.CustomerFname,
@@ -550,14 +1025,65 @@
             DateCreated = reservation.DateCreated,
             RoomPrice = reservation.RoomPrice
         };
+        showEditModal = true;
+        StateHasChanged();
+    }
+
+    private void CloseEditModal()
+    {
+        showEditModal = false;
+        editReservation = new RoomReservation_Dumadapat_IT13.Models.Reservation();
+    }
+
+    private async Task UpdateReservationFromModal()
+    {
+        if (editReservation.ReservationID == 0)
+        {
+            ShowNotification("Please select a reservation to update.", "error");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(editReservation.CustomerFname) ||
+            string.IsNullOrWhiteSpace(editReservation.CustomerLname) ||
+            string.IsNullOrWhiteSpace(editReservation.ContactNum) ||
+            string.IsNullOrWhiteSpace(editReservation.Email) ||
+            string.IsNullOrWhiteSpace(editReservation.RoomType) ||
+            editReservation.CheckInDate == null ||
+            editReservation.CheckOutDate == null ||
+            string.IsNullOrWhiteSpace(editReservation.Status) ||
+            editReservation.RoomPrice <= 0)
+        {
+            ShowNotification("Please fill in all required fields.", "error");
+            return;
+        }
+
+        try
+        {
+            var success = await DatabaseService.UpdateReservationAsync(editReservation);
+            
+            if (success)
+            {
+                ShowNotification("Reservation updated successfully!", "success");
+                CloseEditModal();
+                await LoadAllReservations();
+            }
+            else
+            {
+                ShowNotification("Failed to update reservation. Please try again.", "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowNotification($"Error updating reservation: {ex.Message}", "error");
+        }
     }
 
     private void ShowCancelModal()
     {
         if (currentReservation.ReservationID == 0)
         {
-        ShowNotification("Please select a reservation to cancel.", "error");
-        return;
+            ShowNotification("Please select a reservation to cancel.", "error");
+            return;
         }
         cancelReason = "";
         showCancelModal = true;
@@ -589,7 +1115,7 @@
         cancelReason = "";
     }
 
-    private void ConfirmCancelReservation()
+    private async Task ConfirmCancelReservation()
     {
         if (string.IsNullOrWhiteSpace(cancelReason))
         {
@@ -600,35 +1126,74 @@
         var reservationToCancel = reservations.FirstOrDefault(r => r.ReservationID == currentReservation.ReservationID);
         if (reservationToCancel != null)
         {
-            // Move to cancelled reservations
-            cancelledReservations.Add(new RoomReservation_Dumadapat_IT13.Models.RemovedReservation
+            try
             {
-                RemovedID = nextRemovedId++,
-                ReservationID = reservationToCancel.ReservationID,
-                CustomerFname = reservationToCancel.CustomerFname,
-                CustomerLname = reservationToCancel.CustomerLname,
-                ContactNum = reservationToCancel.ContactNum,
-                Email = reservationToCancel.Email,
-                RoomType = reservationToCancel.RoomType,
-                CheckInDate = reservationToCancel.CheckInDate,
-                CheckOutDate = reservationToCancel.CheckOutDate,
-                Status = reservationToCancel.Status,
-                ReasonNote = cancelReason,
-                AdminID = 1, // Static admin ID
-                RemovedBy = "Admin User", // Static admin name
-                DateRemoved = DateTime.Now,
-                RoomPrice = reservationToCancel.RoomPrice,
-                AdminName = "Admin User"
-            });
-            
-            // Remove from active reservations
-            reservations.Remove(reservationToCancel);
-            allReservationsList.Remove(reservationToCancel);
-            
-            ShowNotification("Reservation cancelled successfully!", "success");
-            CloseCancelModal();
-            ClearForm();
-            LoadAllReservations();
+                // Get current user email to find admin info
+                var userEmail = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "userEmail");
+                string removedBy = "Admin User"; // Default
+                
+                if (!string.IsNullOrEmpty(userEmail))
+                {
+                    // Try to get user info from database
+                    var allUsers = await DatabaseService.GetAllUsersAsync();
+                    var currentUser = allUsers.FirstOrDefault(u => u.Email == userEmail);
+                    if (currentUser != null)
+                    {
+                        removedBy = $"{currentUser.Fname} {currentUser.Lname}".Trim();
+                        if (string.IsNullOrEmpty(removedBy))
+                        {
+                            removedBy = currentUser.Email ?? "Admin User";
+                        }
+                    }
+                }
+
+                // Create removed reservation
+                var removedReservation = new Models.RemovedReservation
+                {
+                    ReservationID = reservationToCancel.ReservationID,
+                    CustomerFname = reservationToCancel.CustomerFname,
+                    CustomerLname = reservationToCancel.CustomerLname,
+                    ContactNum = reservationToCancel.ContactNum,
+                    Email = reservationToCancel.Email,
+                    RoomType = reservationToCancel.RoomType,
+                    CheckInDate = reservationToCancel.CheckInDate,
+                    CheckOutDate = reservationToCancel.CheckOutDate,
+                    Status = "Cancelled",
+                    ReasonNote = cancelReason,
+                    RemovedBy = removedBy,
+                    DateRemoved = DateTime.Now,
+                    RoomPrice = reservationToCancel.RoomPrice
+                };
+
+                // Save to removed reservations table
+                var removedId = await DatabaseService.AddRemovedReservationAsync(removedReservation);
+                
+                if (removedId > 0)
+                {
+                    // Delete from active reservations
+                    var deleted = await DatabaseService.DeleteReservationAsync(reservationToCancel.ReservationID);
+                    
+                    if (deleted)
+                    {
+                        ShowNotification("Reservation cancelled successfully!", "success");
+                        CloseCancelModal();
+                        ClearForm();
+                        await LoadAllReservations();
+                    }
+                    else
+                    {
+                        ShowNotification("Reservation moved to cancelled but could not be removed from active list.", "error");
+                    }
+                }
+                else
+                {
+                    ShowNotification("Failed to cancel reservation. Please try again.", "error");
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowNotification($"Error cancelling reservation: {ex.Message}", "error");
+            }
         }
         else
         {
@@ -638,7 +1203,10 @@
 
     private void ClearForm()
     {
-        currentReservation = new RoomReservation_Dumadapat_IT13.Models.Reservation();
+        currentReservation = new RoomReservation_Dumadapat_IT13.Models.Reservation
+        {
+            Status = "Pending"
+        };
         currentReservation.CheckInDate = null;
         currentReservation.CheckOutDate = null;
     }
@@ -649,20 +1217,11 @@
         SearchReservations();
     }
 
-    private void LoadAllReservationsForSearch()
+    private async Task LoadAllReservationsForSearch()
     {
         // Restore all reservations (remove search filter)
         searchTerm = "";
-        if (allReservationsList.Count > 0)
-        {
-            reservations = new List<RoomReservation_Dumadapat_IT13.Models.Reservation>(allReservationsList);
-        }
-        else
-        {
-            InitializeSampleData();
-            allReservationsList = new List<RoomReservation_Dumadapat_IT13.Models.Reservation>(reservations);
-        }
-        StateHasChanged();
+        await LoadAllReservations();
     }
 
     private void SearchReservations()
@@ -670,34 +1229,44 @@
         if (string.IsNullOrWhiteSpace(searchTerm))
         {
             // Restore all reservations
-            if (allReservationsList.Count > 0)
-            {
-                reservations = new List<RoomReservation_Dumadapat_IT13.Models.Reservation>(allReservationsList);
-            }
-            else
-            {
-                InitializeSampleData();
-                allReservationsList = new List<RoomReservation_Dumadapat_IT13.Models.Reservation>(reservations);
-            }
+            reservations = new List<Models.Reservation>(allReservationsList);
             StateHasChanged();
             return;
         }
 
-        // Ensure we have the full list for searching
-        if (allReservationsList.Count == 0)
-        {
-            InitializeSampleData();
-            allReservationsList = new List<RoomReservation_Dumadapat_IT13.Models.Reservation>(reservations);
-        }
+        // Check if search term is a number (for ID search)
+        bool isNumeric = int.TryParse(searchTerm, out int searchId);
 
+        // Filter from the full list
         reservations = allReservationsList.Where(r =>
-            (r.CustomerFname?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
-            (r.CustomerLname?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
-            (r.Email?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
-            (r.ContactNum?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
-            (r.RoomType?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
-            (r.Status?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false)
-        ).ToList();
+        {
+            // If numeric search, check for exact ID match first
+            if (isNumeric)
+            {
+                // If exact ID match, return only that
+                if (r.ReservationID == searchId)
+                {
+                    return true;
+                }
+                // For numeric searches, also check if ID contains the number (e.g., "3" matches "13", "23", etc.)
+                // but don't search in contact numbers to avoid false matches
+                return r.ReservationID.ToString().Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                       (r.CustomerFname?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                       (r.CustomerLname?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                       (r.Email?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                       (r.RoomType?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                       (r.Status?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false);
+            }
+
+            // For non-numeric searches, search in all fields including contact numbers
+            return (r.CustomerFname?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                   (r.CustomerLname?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                   (r.Email?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                   (r.ContactNum?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                   (r.RoomType?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                   (r.Status?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                   (r.ReservationID.ToString().Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+        }).ToList();
         StateHasChanged();
     }
 
