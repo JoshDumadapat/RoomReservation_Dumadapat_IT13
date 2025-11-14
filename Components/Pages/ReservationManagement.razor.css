@@ -783,6 +783,15 @@
     background-color: #6ba0e0;
 }
 
+.edit-modal-body .btn-confirm-success {
+    background-color: #7db3f0;
+    color: #1a3d6b;
+}
+
+.edit-modal-body .btn-confirm-success:hover {
+    background-color: #6ba0e0;
+}
+
 @keyframes modalFadeIn {
     from {
         opacity: 0;
